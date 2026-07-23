@@ -41,7 +41,7 @@ WCAG-minded contrast on both themes, visible focus states, aria labels and live 
 
 ## Deployment
 
-Published at https://bcmagtalas.github.io/net-zero-sem-atlas/ via GitHub Pages (`.github/workflows/deploy.yml` builds and deploys on every push to `main`).
+Published at https://bcmagtalas.github.io/energy-transition-thesis/ via GitHub Pages (`.github/workflows/deploy.yml` builds and deploys on every push to `main`).
 
 ## Source hierarchy
 

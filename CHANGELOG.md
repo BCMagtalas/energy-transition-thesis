@@ -1,5 +1,8 @@
 # Changelog
 
+## v5.0.2 — Repository renamed
+- Repo renamed to BCMagtalas/energy-transition-thesis; the site now lives at https://bcmagtalas.github.io/energy-transition-thesis/ (canonical/OG/sitemap/README updated). GitHub redirects the old repo URL; the old Pages URL does not redirect, so share the new link.
+
 ## v5.0.1 — Published
 - Deployed to GitHub Pages: https://bcmagtalas.github.io/net-zero-sem-atlas/ (repo BCMagtalas/net-zero-sem-atlas; auto-deploys on every push to main via GitHub Actions). Canonical/OG/sitemap URLs now point at the live address. Live site verified: title, header byline, hero, and WebGL scenes all rendering over HTTPS.
 
