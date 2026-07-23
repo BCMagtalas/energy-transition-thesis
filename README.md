@@ -1,4 +1,4 @@
-# Net Zero SEM Atlas
+# Energy Transition Thesis
 
 An interactive academic poster for the MA thesis **"Charting the Path to Net Zero: Investigating the Underlying Constructs Shaping the Energy Transition Landscape"** by Bernie Calderon Magtalas (Graduate School of Asia-Pacific Studies, Waseda University, 2024).
 

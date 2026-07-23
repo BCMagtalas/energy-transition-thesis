@@ -12,7 +12,7 @@ export default class ErrorBoundary extends React.Component<Props, State> {
 
   componentDidCatch(error: unknown, info: unknown) {
     // eslint-disable-next-line no-console
-    console.error('Net Zero SEM Atlas crashed:', error, info);
+    console.error('Energy Transition Thesis crashed:', error, info);
   }
 
   render() {
