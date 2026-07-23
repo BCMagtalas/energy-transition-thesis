@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://example.com/sitemap.xml
+Sitemap: https://bcmagtalas.github.io/net-zero-sem-atlas/sitemap.xml

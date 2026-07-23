@@ -39,12 +39,9 @@ Five self-contained Three.js vignettes (no external photo/video assets): a dawn 
 
 WCAG-minded contrast on both themes, visible focus states, aria labels and live regions, reduced-motion support, a full multi-page print route (Print / save full poster), citation copy with clipboard fallback, and CSV download.
 
-## Before publishing
+## Deployment
 
-Replace the `https://example.com/` placeholders with the live deployment URL in:
-- `index.html` (canonical, Open Graph, Twitter meta)
-- `public/robots.txt` (Sitemap line)
-- `public/sitemap.xml`
+Published at https://bcmagtalas.github.io/net-zero-sem-atlas/ via GitHub Pages (`.github/workflows/deploy.yml` builds and deploys on every push to `main`).
 
 ## Source hierarchy
 
