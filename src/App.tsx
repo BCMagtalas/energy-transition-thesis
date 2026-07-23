@@ -688,7 +688,7 @@ function Methods() {
             <div className="grid grid-cols-1 gap-x-8 md:grid-cols-2 xl:grid-cols-4">
             {glossary.map(([term, definition]) => (
               <details key={term} className="group border-b border-border py-1">
-                <summary className="cursor-pointer list-none text-sm font-bold transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+                <summary className="cursor-pointer list-none text-xs font-bold transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
                   <span className="mr-2 inline-block text-primary transition-transform duration-200 group-open:rotate-90">›</span>{term}
                 </summary>
                 <p className="mb-0 mt-1.5 pl-5 text-xs leading-relaxed text-muted-foreground">{definition}</p>
