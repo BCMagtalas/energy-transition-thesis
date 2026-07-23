@@ -1,5 +1,8 @@
 # Changelog
 
+## v5.0.1 — Published
+- Deployed to GitHub Pages: https://bcmagtalas.github.io/net-zero-sem-atlas/ (repo BCMagtalas/net-zero-sem-atlas; auto-deploys on every push to main via GitHub Actions). Canonical/OG/sitemap URLs now point at the live address. Live site verified: title, header byline, hero, and WebGL scenes all rendering over HTTPS.
+
 ## v5.0.0 — Final release audit
 - **Robustness**: theme persistence hardened against Safari private browsing, where `localStorage.setItem` throws — previously this would have crashed the theme effect into the error boundary; the theme now still applies and simply doesn't persist.
 - **Full-spectrum verification (all passing)**: production build + 12 structural audit checks; zero source hygiene issues (no console.log/TODO); 20-point functional/data/a11y suite (header + hero attribution, theme round-trip, keyboard-opened inspector + Escape, pathway tabs, Evidence headline and 7/9/19 data-row counts with all three negative estimates, 12 glossary entries, sample bars summing to 120, 3 noopener thesis links, 7-page print route, one h1 per view, aria landmarks/live regions, document lang); zero vertical/horizontal overflow on all 7 pages in both themes at 1332×665 and 1920×960 (18px adaptive root) and zero horizontal overflow at 375px mobile with the header byline truncating safely; all five WebGL scenes cycled with exactly one live canvas remaining (renderer/composer disposal verified); the production bundle served via vite preview runs with zero console errors, confirming dev-console entries were stale HMR artifacts.
