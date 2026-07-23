@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__a8a617a6-494f-4009-9514-015b3a154102__search",
+      "Bash(python3 \"/Users/bcm/.claude/skills/ui-ux-pro-max-skill/.claude/skills/ui-ux-pro-max/scripts/search.py\" \"academic research data visualization energy climate sustainability editorial\" --design-system --persist -p \"Net Zero SEM Atlas\" --output-dir \"/Users/bcm/Downloads/netzero_overview_rebuilt_v3 8\")",
+      "Bash(npm --version)",
+      "Bash(npm install *)",
+      "mcp__a8a617a6-494f-4009-9514-015b3a154102__get_component",
+      "Bash(curl -sL \"https://drive.google.com/uc?export=download&id=1h4BpysR5z_ZS5MbRbBjMU75HtxHiheXC\" -o results.bin)"
+    ]
+  }
+}

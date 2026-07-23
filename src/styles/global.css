@@ -1,0 +1,195 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* ---------- Design tokens · Organic Biophilic (ui-ux-pro-max) ---------- */
+:root {
+  --background: #f2faf5;
+  --foreground: #10322a;
+  --card: #ffffff;
+  --card-foreground: #10322a;
+  --muted: #e3f0e8;
+  --muted-foreground: #4d6d5e;
+  --primary: #047857; /* emerald-700: 4.5:1+ on background for small text (AA) */
+  --primary-foreground: #ffffff;
+  --secondary: #d9efe3;
+  --secondary-foreground: #065f46;
+  --accent: #e6f6ee;
+  --accent-foreground: #065f46;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --border: #cfe6d8;
+  --ring: #047857;
+  --gold: #a96800;
+  --waseda: #9e1b32; /* Waseda Bordeaux — 7.4:1 on background */
+  --shadow-soft: 0 18px 48px rgba(6, 78, 59, 0.08);
+
+  /* Bridge variables used by the SEM diagram styles */
+  --negative: #c2564b;
+  --good: #1d7a4b;
+  --focus: 0 0 0 4px rgba(5, 150, 105, 0.25);
+}
+
+:root[data-theme="dark"] {
+  --background: #0b1512;
+  --foreground: #e8f5ee;
+  --card: #12211b;
+  --card-foreground: #e8f5ee;
+  --muted: #1a2f26;
+  --muted-foreground: #9dbcac;
+  --primary: #34d399;
+  --primary-foreground: #06281c;
+  --secondary: #163527;
+  --secondary-foreground: #a7f3d0;
+  --accent: #17352a;
+  --accent-foreground: #a7f3d0;
+  --destructive: #f87171;
+  --destructive-foreground: #200a0a;
+  --border: #234134;
+  --ring: #34d399;
+  --gold: #e7b14a;
+  --waseda: #ef8fa0; /* Waseda Bordeaux, lifted for dark bg — 7.8:1 */
+  --shadow-soft: 0 20px 58px rgba(0, 0, 0, 0.35);
+
+  --negative: #ff8b74;
+  --good: #69c994;
+  --focus: 0 0 0 4px rgba(52, 211, 153, 0.3);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+  --color-gold: var(--gold);
+  --color-waseda: var(--waseda);
+  --color-good: var(--good);
+  --color-negative: var(--negative);
+  --font-serif: "Crimson Pro", Georgia, "Times New Roman", serif;
+  --font-sans: "Atkinson Hyperlegible", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --shadow-soft: var(--shadow-soft);
+}
+
+/* ---------- Base ---------- */
+html, body, #root { height: 100%; margin: 0; }
+
+/* Adaptive type scale: the compact 16px root keeps every section on one
+   viewport for small/short laptop windows; larger screens have measured
+   slack, so the whole rem-based type system steps up for readability. */
+@media (min-width: 1600px) and (min-height: 850px) {
+  html { font-size: 17px; }
+}
+@media (min-width: 1900px) and (min-height: 950px) {
+  html { font-size: 18px; }
+}
+body {
+  font-family: var(--font-sans);
+  background: var(--background);
+  color: var(--foreground);
+  -webkit-font-smoothing: antialiased;
+}
+::selection { background: color-mix(in srgb, var(--primary) 25%, transparent); }
+
+.page {
+  overscroll-behavior-y: contain;
+  scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--muted-foreground) 35%, transparent) transparent;
+}
+.page::-webkit-scrollbar { width: 10px; }
+.page::-webkit-scrollbar-track { background: transparent; }
+.page::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--muted-foreground) 35%, transparent);
+  border: 3px solid transparent;
+  background-clip: padding-box;
+  border-radius: 999px;
+}
+
+.print-only { display: none; }
+
+/* ---------- SEM diagram (SEMCanvas.tsx) ---------- */
+.sem-shell { height: 100%; width: 100%; position: relative; overflow: hidden; }
+.sem-svg { width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+.sem-svg:active { cursor: grabbing; }
+.sem-controls { position: absolute; right: 16px; top: 16px; z-index: 6; display: flex; gap: 7px; }
+.sem-controls button {
+  padding: 8px 14px; background: var(--card); color: var(--foreground);
+  border: 1px solid var(--border); border-radius: 999px; font-weight: 700; font-size: 13px;
+  cursor: pointer; transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.sem-controls button:hover { border-color: color-mix(in srgb, var(--primary) 45%, var(--border)); }
+.sem-controls button:focus-visible { outline: none; box-shadow: var(--focus); }
+.sem-help { position: absolute; right: 18px; bottom: 14px; color: var(--muted-foreground); font-size: 11px; }
+.sem-edge, .sem-node { transition: opacity 0.18s ease; }
+.sem-edge.is-context, .sem-node.is-context { opacity: 0.38; }
+.edge-base { fill: none; stroke: #6b8578; stroke-width: 3.2; stroke-linecap: round; }
+:root[data-theme="dark"] .edge-base { stroke: #587467; }
+.edge-base.negative { stroke: var(--negative); stroke-dasharray: 10 8; }
+.edge-accent {
+  fill: none; stroke: var(--primary); stroke-width: 3.8; stroke-linecap: round;
+  animation: active-path-breathe 1.65s ease-in-out infinite; pointer-events: none;
+}
+.edge-accent.negative { stroke: var(--negative); stroke-dasharray: 10 8; animation: dash 1.7s linear infinite; }
+@keyframes dash { to { stroke-dashoffset: -48; } }
+@keyframes active-path-breathe { 0%, 100% { opacity: 0.78; } 50% { opacity: 1; } }
+.edge-hit { fill: none; stroke: transparent; stroke-width: 24; pointer-events: stroke; cursor: pointer; }
+.edge-hit:focus-visible { outline: none; }
+.edge-label { cursor: pointer; }
+.edge-label rect { fill: var(--card); stroke: var(--border); stroke-width: 1.5; }
+.edge-label text { fill: var(--foreground); font-size: 13px; font-weight: 800; font-family: var(--font-sans); }
+.edge-label:focus-visible { outline: none; }
+.edge-label:focus-visible rect, .edge-label.is-active rect { stroke: var(--primary); stroke-width: 3; }
+.sem-node { cursor: pointer; }
+.sem-node:focus-visible { outline: none; }
+.node-body { stroke: var(--card); stroke-width: 3; transition: stroke-width 0.18s ease; }
+.node-focus {
+  fill: none; stroke: var(--primary); stroke-width: 3; opacity: 0;
+  transition: opacity 0.18s ease, stroke-width 0.18s ease;
+}
+.sem-node:hover .node-focus, .sem-node:focus-visible .node-focus { opacity: 1; }
+.sem-node:hover .node-body, .sem-node.is-active .node-body { stroke-width: 5; }
+.node-code { fill: white; font-size: 26px; font-weight: 700; font-family: var(--font-serif); }
+.node-name { fill: white; font-size: 10px; font-weight: 800; font-family: var(--font-sans); }
+.sem-poster .sem-svg { padding: 56px 18px 86px; }
+.sem-pathway .sem-svg { padding: 8px; }
+.intro-edge { fill: none; stroke: var(--primary); stroke-width: 3.8; stroke-linecap: round; }
+.intro-edge.negative { stroke: var(--negative); stroke-dasharray: 1; }
+
+/* Scene3D fallback */
+.scene3d-fallback { position: absolute; inset: 0; background: linear-gradient(150deg, #0d221a, #123a2c 60%); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ---------- Print ---------- */
+@media print {
+  body { overflow: visible; background: white; color: #111; }
+  .app-shell { display: block; height: auto; }
+  .topbar, .screen-only, .toast, .no-print, .sem-controls, .sem-help { display: none !important; }
+  .print-only { display: block; }
+  .page {
+    height: auto !important; min-height: 100vh !important; overflow: visible !important;
+    padding: 15mm; page-break-after: always; background: white;
+  }
+  .sem-shell { height: 150mm; }
+  .print-pathways .sem-shell { height: 120mm; }
+}
