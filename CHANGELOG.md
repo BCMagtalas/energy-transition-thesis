@@ -1,5 +1,8 @@
 # Changelog
 
+## v5.0.4 — Model inspector no longer covers the diagram (desktop split view)
+- On desktop the evidence inspector overlaid the right third of the SEM diagram — hiding the AE/ES outcome nodes and the β5/β6 paths, and often the very node just clicked — contradicting the page's "keeping the full model visible" promise. It is now a master–detail split: selecting a node/coefficient shrinks the diagram to the left (1266px → ~914px at 1332w, all seven nodes still visible) and docks the 340px inspector beside it, covering nothing. Closing returns the diagram to full width. Mobile keeps the overlay (no room to split) with the diagram behind it. Zero overflow in both states; build + 12 audit checks pass.
+
 ## v5.0.3 — Mobile audit and optimization
 - Fixed the interactive SEM diagram on phones: Model and Pathways rendered the landscape diagram in a tall desktop-sized panel, so it fit-to-width into a tiny strip with 70–75% empty void above it. On mobile the diagram now sits in a right-sized fixed-height box (Model 264px with room for the zoom controls; Pathways 200px, no controls) directly under its heading — no void, ~2× larger diagram. The desktop-only "⌘/Ctrl + wheel" hint is hidden on touch. Desktop layout unchanged (behind `lg:` breakpoints; SEM still fills at 480px).
 - Conclusion action buttons (Print / CSV / Copy / Return) enlarged to a 40px touch target on mobile, kept at the compact 32px on desktop for the one-viewport fit.

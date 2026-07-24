@@ -431,8 +431,12 @@ function ModelPage({ selection, onSelect }: { selection: Selection; onSelect: (s
             <Legend />
             <strong className="hidden text-xs font-bold text-primary sm:block">Select a construct or coefficient for details</strong>
           </div>
-          <div className="relative h-[264px] w-full lg:h-auto lg:min-h-[480px] lg:flex-1">
-            <SEMCanvas selected={selection} onSelect={onSelect} />
+          <div className="relative flex h-[264px] w-full lg:h-auto lg:min-h-[480px] lg:flex-1">
+            {/* Diagram shrinks left; on desktop the inspector docks beside it (split view)
+                so the full model stays visible — on mobile it overlays (no room to split). */}
+            <div className="relative min-w-0 flex-1">
+              <SEMCanvas selected={selection} onSelect={onSelect} />
+            </div>
             <AnimatePresence>{selection && <Inspector selection={selection} onClose={() => onSelect(null)} />}</AnimatePresence>
           </div>
         </Panel>
@@ -449,7 +453,7 @@ function Inspector({ selection, onClose }: { selection: Exclude<Selection, null>
     addEventListener('keydown', handler);
     return () => removeEventListener('keydown', handler);
   }, [onClose]);
-  const shell = 'absolute bottom-4 right-4 top-4 z-10 w-[min(360px,80%)] overflow-auto rounded-3xl border border-border bg-card p-6 shadow-soft';
+  const shell = 'absolute bottom-4 right-4 top-4 z-10 w-[min(360px,80%)] overflow-auto rounded-3xl border border-border bg-card p-5 shadow-soft lg:static lg:ml-3 lg:w-[340px] lg:shrink-0 lg:self-stretch lg:bottom-auto lg:right-auto lg:top-auto';
   const slide = {
     initial: { opacity: 0, transform: 'translateX(28px)' },
     animate: { opacity: 1, transform: 'translateX(0px)' },
