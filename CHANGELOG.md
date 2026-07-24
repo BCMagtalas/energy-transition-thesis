@@ -1,5 +1,10 @@
 # Changelog
 
+## v5.0.3 — Mobile audit and optimization
+- Fixed the interactive SEM diagram on phones: Model and Pathways rendered the landscape diagram in a tall desktop-sized panel, so it fit-to-width into a tiny strip with 70–75% empty void above it. On mobile the diagram now sits in a right-sized fixed-height box (Model 264px with room for the zoom controls; Pathways 200px, no controls) directly under its heading — no void, ~2× larger diagram. The desktop-only "⌘/Ctrl + wheel" hint is hidden on touch. Desktop layout unchanged (behind `lg:` breakpoints; SEM still fills at 480px).
+- Conclusion action buttons (Print / CSV / Copy / Return) enlarged to a 40px touch target on mobile, kept at the compact 32px on desktop for the one-viewport fit.
+- Verified: zero horizontal overflow on all 7 pages at 375px; desktop zero overflow on all 7 pages at 1332×665; build + 12 audit checks pass.
+
 ## v5.0.2 — Repository renamed
 - Repo renamed to BCMagtalas/energy-transition-thesis; the site now lives at https://bcmagtalas.github.io/energy-transition-thesis/ (canonical/OG/sitemap/README updated). GitHub redirects the old repo URL; the old Pages URL does not redirect, so share the new link.
 

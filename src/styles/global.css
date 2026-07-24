@@ -134,6 +134,8 @@ body {
 .sem-controls button:hover { border-color: color-mix(in srgb, var(--primary) 45%, var(--border)); }
 .sem-controls button:focus-visible { outline: none; box-shadow: var(--focus); }
 .sem-help { position: absolute; right: 18px; bottom: 14px; color: var(--muted-foreground); font-size: 11px; }
+/* The wheel/drag hint is desktop-only guidance; hide it on touch-sized screens. */
+@media (max-width: 640px) { .sem-help { display: none; } }
 .sem-edge, .sem-node { transition: opacity 0.18s ease; }
 .sem-edge.is-context, .sem-node.is-context { opacity: 0.38; }
 .edge-base { fill: none; stroke: #6b8578; stroke-width: 3.2; stroke-linecap: round; }

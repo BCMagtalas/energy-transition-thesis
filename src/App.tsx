@@ -424,14 +424,14 @@ function Legend() {
 function ModelPage({ selection, onSelect }: { selection: Selection; onSelect: (s: Selection) => void }) {
   return (
     <section className="page h-full overflow-y-auto" data-page="model">
-      <div className="mx-auto flex h-full min-h-[560px] max-w-[1500px] flex-col gap-4 px-5 py-5 sm:px-8">
+      <div className="mx-auto flex max-w-[1500px] flex-col gap-4 px-5 py-5 sm:px-8 lg:h-full lg:min-h-[560px]">
         <PageHead kicker="Interactive model" title="Complete structural architecture" sub="Hover to trace connections. Select a construct or coefficient to open its evidence panel while keeping the full model visible." />
-        <Panel {...rise(1)} className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <Panel {...rise(1)} className="flex min-h-0 flex-col overflow-hidden lg:flex-1">
           <div className="flex min-h-12 flex-wrap items-center justify-between gap-2 border-b border-border px-5 py-2.5">
             <Legend />
-            <strong className="text-xs font-bold text-primary">Select a construct or coefficient for details</strong>
+            <strong className="hidden text-xs font-bold text-primary sm:block">Select a construct or coefficient for details</strong>
           </div>
-          <div className="relative min-h-[480px] flex-1">
+          <div className="relative h-[264px] w-full lg:h-auto lg:min-h-[480px] lg:flex-1">
             <SEMCanvas selected={selection} onSelect={onSelect} />
             <AnimatePresence>{selection && <Inspector selection={selection} onClose={() => onSelect(null)} />}</AnimatePresence>
           </div>
@@ -497,7 +497,7 @@ function PathwaysPage({ pathway, setPathway, autoplay, setAutoplay }: { pathway:
   const p = pathways[pathway];
   return (
     <section className="page h-full overflow-y-auto" data-page="pathways">
-      <div className="mx-auto flex h-full min-h-[560px] max-w-[1500px] flex-col gap-4 px-5 py-5 sm:px-8">
+      <div className="mx-auto flex max-w-[1500px] flex-col gap-4 px-5 py-5 sm:px-8 lg:h-full lg:min-h-[560px]">
         <PageHead kicker="Policy pathways" title="Three routes toward renewable energy adoption" sub="Switch pathways to trace the structural relationships used in the thesis interpretation." />
         <motion.div {...rise(1)} className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-[1fr_1fr_1fr_150px]" role="tablist">
           {(Object.keys(pathways) as (keyof typeof pathways)[]).map(k => (
@@ -516,7 +516,7 @@ function PathwaysPage({ pathway, setPathway, autoplay, setAutoplay }: { pathway:
             {autoplay ? <Pause /> : <Play />}{autoplay ? 'Pause' : 'Auto-play'}
           </Button>
         </motion.div>
-        <Panel {...rise(2)} className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[36%_64%]">
+        <Panel {...rise(2)} className="grid min-h-0 grid-cols-1 overflow-hidden lg:flex-1 lg:grid-cols-[36%_64%]">
           <div className="overflow-y-auto border-b border-border p-5 lg:border-b-0 lg:border-r">
             <motion.div key={p.name} initial={{ opacity: 0, transform: 'translateX(-14px)' }} animate={{ opacity: 1, transform: 'translateX(0px)' }} transition={{ duration: 0.25, ease: easeOutStrong }}>
             <span className="text-sm font-extrabold tracking-wider text-primary">{p.formula}</span>
@@ -529,7 +529,7 @@ function PathwaysPage({ pathway, setPathway, autoplay, setAutoplay }: { pathway:
             <div className="mt-4"><Caution>Illustrative examples are not statistically derived from the SEM. Structural relationships are correlational, not causal.</Caution></div>
             </motion.div>
           </div>
-          <div className="min-h-[380px] min-w-0">
+          <div className="h-[200px] w-full min-w-0 border-t border-border lg:h-auto lg:min-h-[380px] lg:border-t-0">
             <SEMCanvas mode="pathway" activeNodes={p.activeNodes} activePaths={p.activePaths} interactive={false} />
           </div>
         </Panel>
@@ -747,10 +747,10 @@ function Conclusion({ onPrint, onCSV, onCopy, onStart }: { onPrint: () => void; 
             </small>
           </div>
           <div className="no-print flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" className="h-8 px-3 text-xs" onClick={onPrint}><Printer />Print / save full poster</Button>
-            <Button variant="outline" size="sm" className="h-8 px-3 text-xs" onClick={onCSV}><Download />Download CSV</Button>
-            <Button variant="outline" size="sm" className="h-8 px-3 text-xs" onClick={onCopy}><Copy />Copy citation</Button>
-            <Button size="sm" className="h-8 px-3 text-xs" onClick={onStart}>Return to start</Button>
+            <Button variant="outline" size="sm" className="h-10 px-3.5 text-xs sm:h-8 sm:px-3" onClick={onPrint}><Printer />Print / save full poster</Button>
+            <Button variant="outline" size="sm" className="h-10 px-3.5 text-xs sm:h-8 sm:px-3" onClick={onCSV}><Download />Download CSV</Button>
+            <Button variant="outline" size="sm" className="h-10 px-3.5 text-xs sm:h-8 sm:px-3" onClick={onCopy}><Copy />Copy citation</Button>
+            <Button size="sm" className="h-10 px-3.5 text-xs sm:h-8 sm:px-3" onClick={onStart}>Return to start</Button>
           </div>
         </Panel>
       </div>

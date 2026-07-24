@@ -6,7 +6,8 @@
       "Bash(npm --version)",
       "Bash(npm install *)",
       "mcp__a8a617a6-494f-4009-9514-015b3a154102__get_component",
-      "Bash(curl -sL \"https://drive.google.com/uc?export=download&id=1h4BpysR5z_ZS5MbRbBjMU75HtxHiheXC\" -o results.bin)"
+      "Bash(curl -sL \"https://drive.google.com/uc?export=download&id=1h4BpysR5z_ZS5MbRbBjMU75HtxHiheXC\" -o results.bin)",
+      "Bash(npm run *)"
     ]
   }
 }
