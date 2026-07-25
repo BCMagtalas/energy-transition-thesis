@@ -1,5 +1,8 @@
 # Changelog
 
+## v5.7.5 — Wind & coal matched to the premium density of the other scenes
+- The two ground scenes read as less premium than the globe/solar/particle heroes because they were sparser — thin line-art, empty space, dull scattered dots — versus the others' dense particles, intricate wireframe, and glowing vertex nodes. Closed the gap: added a distant **starfield** to both for atmospheric depth; added **glowing vertex nodes** (the globe's signature accent) at the structural joints — turbine bases in wind; cooling-tower rims, boiler vent, and pipe junctions in coal; and made the particles **denser and more luminous** (wind drifting motes 210→370 total and brighter; coal plume per-emitter 150→220 with brighter, more saturated amber). Both now hold their own next to the other three.
+
 ## v5.7.4 — Coal plant reads as one facility, not scattered structures
 - The cooling towers, boiler house, and stacks were evenly spread across the frame with big gaps and nothing linking them, so they read as three separate objects. Unified them into a single interconnected complex: clustered the structures tightly (towers left, boiler centre, stacks right beside the boiler), sat them all on a **shared foundation pad** whose footprint outlines the plant site, and ran **connecting pipes** between the boiler↔stacks (flue duct), boiler↔cooling towers, and tower↔tower. Now reads as one power plant.
 
