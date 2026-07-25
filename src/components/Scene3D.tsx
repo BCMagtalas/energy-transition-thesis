@@ -145,30 +145,29 @@ function bladeGeometry(): THREE.ExtrudeGeometry {
   return geo;
 }
 
-/** Realistic 3-blade turbine: tapered tower, capsule nacelle, coned hub, airfoil blades. */
-function realTurbine(
-  s: number, bladeGeo: THREE.BufferGeometry,
-  mat: THREE.Material, bladeMat: THREE.Material
+/** Wireframe turbine: glowing edge-lines + a bright hub node, echoing the globe's wire+nodes. */
+function wireTurbine(
+  s: number, bladeEdges: THREE.BufferGeometry,
+  lineMat: THREE.Material, nodeMat: THREE.Material, textures: THREE.Texture[]
 ): { turbine: THREE.Group; hub: THREE.Group } {
   const turbine = new THREE.Group();
   const h = 3.4 * s;
-  const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.05 * s, 0.11 * s, h, 24), mat);
+  const tower = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.CylinderGeometry(0.05 * s, 0.12 * s, h, 7)), lineMat);
   tower.position.y = h / 2;
-  const nacelle = new THREE.Mesh(new THREE.CapsuleGeometry(0.085 * s, 0.26 * s, 6, 16), mat);
-  nacelle.rotation.x = Math.PI / 2;            // lay the capsule along the wind axis (Z)
-  nacelle.position.set(0, h, -0.03 * s);
+  const nacelle = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(0.34 * s, 0.2 * s, 0.2 * s)), lineMat);
+  nacelle.position.set(0, h, -0.02 * s);
   const hub = new THREE.Group();
-  hub.position.set(0, h, 0.15 * s);
-  const nose = new THREE.Mesh(new THREE.ConeGeometry(0.07 * s, 0.16 * s, 18), mat);
-  nose.rotation.x = Math.PI / 2; nose.position.z = 0.07 * s;
-  hub.add(nose);
+  hub.position.set(0, h, 0.14 * s);
+  const node = new THREE.Mesh(new THREE.SphereGeometry(0.07 * s, 10, 10), nodeMat);
+  hub.add(node, makeGlow(MINT, 0.75 * s, textures));
   for (let b = 0; b < 3; b++) {
-    const blade = new THREE.Mesh(bladeGeo, bladeMat);
+    const blade = new THREE.LineSegments(bladeEdges, lineMat);
     blade.scale.setScalar(s);
-    blade.rotation.y = 0.28;                    // pitch/twist so the airfoil catches the light
+    const tip = makeGlow(GOLD, 0.5 * s, textures);
+    tip.position.set(0, 1.62 * s, 0);          // luminous mote at each blade tip
     const hold = new THREE.Group();
     hold.rotation.z = (b * Math.PI * 2) / 3;
-    hold.add(blade);
+    hold.add(blade, tip);
     hub.add(hold);
   }
   turbine.add(tower, nacelle, hub);
@@ -190,22 +189,18 @@ function coolingTowerGeo(s: number): THREE.LatheGeometry {
   return new THREE.LatheGeometry(pts, 48);
 }
 
-/* ---------- 01 · wind — a night wind farm turning against the glow ---------- */
+/* ---------- 01 · wind — a wireframe wind farm in a stream of light ---------- */
 function buildWind(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
-  darkStage(scene, textures, [[0, '#03130e'], [0.58, '#0a3123'], [1, '#0f4634']], 0x0a3123, 0x2f9e82);
+  darkStage(scene, textures, [[0, '#02140e'], [0.6, '#083626'], [1, '#0c4433']], 0x083626, 0x2f9e82);
 
-  // A soft moon-glow behind the farm rim-lights the towers so they read against the dark.
-  const moon = makeGlow(0xbfe6d8, 6.5, textures);
-  moon.position.set(2.4, 3, -13);
-  scene.add(moon);
-  const rim = new THREE.DirectionalLight(0xdff2ea, 1.5);
-  rim.position.set(-5, 5, -6);
-  scene.add(rim);
+  // Central mint halo the wireframe structures read against (echoes the globe/particle heroes).
+  const halo = makeGlow(MINT, 8, textures);
+  halo.position.set(1.4, 1.3, -6);
+  scene.add(halo);
 
-  // Bright brushed-white nacelles/blades that bloom softly against the night.
-  const mat = new THREE.MeshStandardMaterial({ color: 0xeef3f1, roughness: 0.4, metalness: 0.24 });
-  const bladeMat = new THREE.MeshStandardMaterial({ color: 0xf7faf9, roughness: 0.36, metalness: 0.12 });
-  const bladeGeo = bladeGeometry();
+  const lineMat = new THREE.LineBasicMaterial({ color: MINT, transparent: true, opacity: 0.6 });
+  const nodeMat = new THREE.MeshBasicMaterial({ color: 0xbdf5dc });
+  const bladeEdges = new THREE.EdgesGeometry(bladeGeometry());
 
   const hubs: { hub: THREE.Group; rate: number }[] = [];
   const layout: [number, number, number][] = [
@@ -213,128 +208,165 @@ function buildWind(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
     [-6.2, -3.2, 0.7], [-0.6, -5.6, 0.6], [6.9, -6.6, 0.5]
   ];
   layout.forEach(([x, z, sc], i) => {
-    const { turbine, hub } = realTurbine(sc, bladeGeo, mat, bladeMat);
+    const { turbine, hub } = wireTurbine(sc, bladeEdges, lineMat, nodeMat, textures);
     turbine.position.set(x, -2, z);
     turbine.rotation.y = -0.28 + (i % 3) * 0.22;
     scene.add(turbine);
-    hubs.push({ hub, rate: 0.6 + (i % 3) * 0.26 });
+    hubs.push({ hub, rate: 0.5 + (i % 3) * 0.22 });
   });
+
+  // Drifting "wind" motes (mint + gold) streaming left-to-right — the particle/traveler motif.
+  const mote = (n: number, color: number, size: number, speed: number) => {
+    const geo = new THREE.BufferGeometry();
+    const pos = new Float32Array(n * 3);
+    const seed = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+      pos[i * 3] = (Math.random() - 0.5) * 18;
+      pos[i * 3 + 1] = -1.8 + Math.random() * 5.2;
+      pos[i * 3 + 2] = -1 + (Math.random() - 0.5) * 7;
+      seed[i] = Math.random();
+    }
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    scene.add(new THREE.Points(geo, new THREE.PointsMaterial({
+      color, size, map: dotTexture(textures), transparent: true, opacity: 0.75,
+      blending: THREE.AdditiveBlending, depthWrite: false
+    })));
+    return { geo, seed, n, speed };
+  };
+  const fields = [mote(150, MINT, 0.075, 0.03), mote(60, GOLD, 0.06, 0.045)];
 
   return {
     cam: { pos: [0, 1.1, 9], look: [0, 1.3, -3] },
-    bloom: { strength: 0.7, radius: 0.8, threshold: 0.5 },
+    bloom: { strength: 0.8, radius: 0.8, threshold: 0.35 },
     update(t) {
       hubs.forEach(o => { o.hub.rotation.z = -t * o.rate; });
-      moon.scale.setScalar(6.5 + Math.sin(t * 0.6) * 0.35);
+      halo.scale.setScalar(8 + Math.sin(t * 0.6) * 0.4);
+      fields.forEach(f => {
+        const arr = f.geo.attributes.position.array as Float32Array;
+        for (let i = 0; i < f.n; i++) {
+          arr[i * 3] += f.speed + f.seed[i] * 0.02;
+          arr[i * 3 + 1] += Math.sin(t * 0.5 + f.seed[i] * 9) * 0.002;
+          if (arr[i * 3] > 9) arr[i * 3] = -9;
+        }
+        f.geo.attributes.position.needsUpdate = true;
+      });
     }
   };
 }
 
-/* ---------- 02 · emissions — a coal plant glowing in the industrial night ---------- */
+/* ---------- 02 · emissions — a wireframe plant venting rising carbon ---------- */
 function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
-  darkStage(scene, textures, [[0, '#0a0b0e'], [0.55, '#1d1410'], [1, '#3a2312']], 0x1d1410, 0x7a5230);
+  darkStage(scene, textures, [[0, '#0a0b0e'], [0.55, '#20140f'], [1, '#38210f']], 0x20140f, 0x6f4a2a);
 
-  // A low ember glow (the furnace) warms the whole plant from below.
-  const ember = makeGlow(0xdb7a2e, 9, textures);
-  ember.position.set(0, -0.6, -11);
-  scene.add(ember);
-  const key = new THREE.DirectionalLight(0xffd6a0, 1.25);
-  key.position.set(3, 6, 4);
-  scene.add(key);
+  // Warm carbon halo low behind the plant (the counterpart to the mint halos elsewhere).
+  const halo = makeGlow(0xdb7a2e, 8.5, textures);
+  halo.position.set(0, -0.3, -8);
+  scene.add(halo);
 
-  const concrete = new THREE.MeshStandardMaterial({ color: 0x8a938f, roughness: 0.92 });
-  concrete.side = THREE.DoubleSide;
-  const metal = new THREE.MeshStandardMaterial({ color: 0x707a77, roughness: 0.55, metalness: 0.3 });
-  const band = new THREE.MeshStandardMaterial({ color: 0xb0472e, roughness: 0.7 });
+  // Structures share the wireframe language of the globe, in a cool mint-teal line.
+  const structMat = new THREE.LineBasicMaterial({ color: 0x2fbf9a, transparent: true, opacity: 0.5 });
 
-  type Emitter = { pos: [number, number, number]; r: number; steam: boolean };
+  type Emitter = { pos: [number, number, number]; r: number; rate: number };
   const emitters: Emitter[] = [];
 
-  // Hyperboloid cooling towers with rising steam.
+  // Wireframe hyperboloid cooling towers.
   const coolTower = (x: number, z: number, s: number) => {
-    const m = new THREE.Mesh(coolingTowerGeo(s), concrete);
+    const m = new THREE.LineSegments(new THREE.EdgesGeometry(coolingTowerGeo(s)), structMat);
     m.position.set(x, -2, z);
     scene.add(m);
-    emitters.push({ pos: [x, -2 + 2.6 * s, z], r: 0.5 * s, steam: true });
+    emitters.push({ pos: [x, -2 + 2.65 * s, z], r: 0.42 * s, rate: 0.012 });
   };
   coolTower(-2.2, -1.7, 1.05);
   coolTower(-3.7, -3.6, 0.82);
 
-  // Boiler house: a stepped block with a service pipe.
+  // Wireframe boiler house (stepped block + service duct).
   const bldg = new THREE.Group();
   bldg.position.set(1.0, -2, -1.2);
-  const base = new THREE.Mesh(new THREE.BoxGeometry(1.9, 1.6, 1.4), concrete);
+  const base = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1.9, 1.6, 1.4)), structMat);
   base.position.y = 0.8;
-  const upper = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.85, 1.0), concrete);
+  const upper = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1.15, 0.85, 1.0)), structMat);
   upper.position.set(-0.25, 1.85, 0);
-  const duct = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 1.7, 12), metal);
-  duct.position.set(0.7, 2.0, 0.35);
-  bldg.add(base, upper, duct);
+  bldg.add(base, upper);
   scene.add(bldg);
 
-  // Smokestacks with red bands + blinking hazard beacons, trailing dark smoke.
+  // Wireframe smokestacks topped with blinking red hazard nodes + expanding pulse rings.
   const beacons: { mat: THREE.MeshBasicMaterial; glow: THREE.Sprite; phase: number }[] = [];
+  const rings: { mesh: THREE.Mesh; mat: THREE.MeshBasicMaterial; offset: number }[] = [];
   ([[2.6, -1.4, 1.1], [3.5, -3.2, 0.9]] as [number, number, number][]).forEach(([x, z, s], i) => {
-    const st = new THREE.Mesh(new THREE.CylinderGeometry(0.12 * s, 0.18 * s, 3.2 * s, 20), metal);
+    const st = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.CylinderGeometry(0.14 * s, 0.2 * s, 3.2 * s, 8)), structMat);
     st.position.set(x, -2 + 1.6 * s, z);
-    const ring = new THREE.Mesh(new THREE.CylinderGeometry(0.126 * s, 0.126 * s, 0.22 * s, 20), band);
-    ring.position.set(x, -2 + 2.85 * s, z);
-    scene.add(st, ring);
+    scene.add(st);
     const topY = -2 + 3.2 * s;
     const bMat = new THREE.MeshBasicMaterial({ color: 0xff5a44, transparent: true });
-    const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.055 * s, 8, 8), bMat);
+    const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.07 * s, 10, 10), bMat);
     beacon.position.set(x, topY, z);
-    const bGlow = makeGlow(0xff5a44, 0.6, textures);
+    const bGlow = makeGlow(0xff5a44, 0.7, textures);
     bGlow.position.set(x, topY, z);
     scene.add(beacon, bGlow);
     beacons.push({ mat: bMat, glow: bGlow, phase: i * 2.1 });
-    emitters.push({ pos: [x, topY, z], r: 0.14 * s, steam: false });
+    // Two expanding carbon-pulse rings per stack (the ring motif from the net-zero scene).
+    for (let r = 0; r < 2; r++) {
+      const rMat = new THREE.MeshBasicMaterial({ color: 0xe0913a, transparent: true, opacity: 0.4, side: THREE.DoubleSide });
+      const mesh = new THREE.Mesh(new THREE.TorusGeometry(1, 0.012, 8, 48), rMat);
+      mesh.rotation.x = Math.PI / 2;
+      mesh.position.set(x, topY, z);
+      scene.add(mesh);
+      rings.push({ mesh, mat: rMat, offset: (i * 2 + r) / 4 });
+    }
+    emitters.push({ pos: [x, topY, z], r: 0.12 * s, rate: 0.016 });
   });
 
-  // Combined particle system: light steam from towers, dark smoke from stacks.
-  const per = 84;
+  // Rising carbon motes (warm amber → gold) — the emissions themselves, as luminous particles.
+  const per = 90;
   const count = emitters.length * per;
+  const RISE = 3.6;
   const geo = new THREE.BufferGeometry();
   const pos = new Float32Array(count * 3);
   const col = new Float32Array(count * 3);
   const seed = new Float32Array(count);
-  const steamC = [0.82, 0.86, 0.88], smokeC = [0.24, 0.22, 0.2];
+  const amber = [0.88, 0.55, 0.2], gold = [0.96, 0.73, 0.26];
   emitters.forEach((e, ei) => {
-    const c = e.steam ? steamC : smokeC;
     for (let j = 0; j < per; j++) {
       const idx = ei * per + j, i3 = idx * 3;
       pos[i3] = e.pos[0] + (Math.random() - 0.5) * e.r * 2;
-      pos[i3 + 1] = e.pos[1] + Math.random() * 3.4;
+      pos[i3 + 1] = e.pos[1] + Math.random() * RISE;
       pos[i3 + 2] = e.pos[2] + (Math.random() - 0.5) * e.r * 2;
+      const c = j % 3 === 0 ? gold : amber;
       col[i3] = c[0]; col[i3 + 1] = c[1]; col[i3 + 2] = c[2];
       seed[idx] = Math.random();
     }
   });
   geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
   geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
-  const smokeMat = new THREE.PointsMaterial({
-    size: 0.55, map: dotTexture(textures), vertexColors: true, transparent: true, opacity: 0.5, depthWrite: false
+  const moteMat = new THREE.PointsMaterial({
+    size: 0.12, map: dotTexture(textures), vertexColors: true, transparent: true,
+    opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false
   });
-  scene.add(new THREE.Points(geo, smokeMat));
+  scene.add(new THREE.Points(geo, moteMat));
 
   return {
     cam: { pos: [0, 1.5, 9.4], look: [0, 1.0, -2] },
-    bloom: { strength: 0.6, radius: 0.72, threshold: 0.5 },
+    bloom: { strength: 0.75, radius: 0.78, threshold: 0.34 },
     update(t) {
-      ember.scale.setScalar(9 + Math.sin(t * 0.5) * 0.5);
+      halo.scale.setScalar(8.5 + Math.sin(t * 0.5) * 0.4);
       beacons.forEach(o => {
         const v = 0.28 + 0.72 * Math.pow(Math.abs(Math.sin(t * 1.6 + o.phase)), 4);
         o.mat.opacity = v;
         (o.glow.material as THREE.SpriteMaterial).opacity = v;
       });
+      rings.forEach(({ mesh, mat, offset }) => {
+        const u = (t * 0.25 + offset) % 1;
+        mesh.scale.set(0.2 + u * 1.6, 0.2 + u * 1.6, 1);
+        mat.opacity = 0.45 * (1 - u);
+      });
       const arr = geo.attributes.position.array as Float32Array;
       for (let ei = 0; ei < emitters.length; ei++) {
         const e = emitters[ei];
-        const top = e.pos[1] + (e.steam ? 3.0 : 3.6);
+        const top = e.pos[1] + RISE;
         for (let j = 0; j < per; j++) {
           const idx = ei * per + j, i3 = idx * 3;
-          arr[i3 + 1] += (e.steam ? 0.011 : 0.015) + seed[idx] * 0.01;
-          arr[i3] += 0.003 + Math.sin(seed[idx] * 20 + t * 0.4) * 0.003;
+          arr[i3 + 1] += e.rate + seed[idx] * 0.01;
+          arr[i3] += Math.sin(seed[idx] * 20 + t * 0.4) * 0.003;
           if (arr[i3 + 1] > top) {
             arr[i3] = e.pos[0] + (Math.random() - 0.5) * e.r * 2;
             arr[i3 + 1] = e.pos[1];

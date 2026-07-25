@@ -1,5 +1,11 @@
 # Changelog
 
+## v5.6.0 — Wind & coal restyled to match the abstract hero set
+- Photoreal primitives were losing to the abstract heroes (globe, floating panels, rising particles) and clashing with them. Rebuilt 01/02 in the same visual language instead: glowing wireframe structures + luminous nodes/motes/rings, bloom-lit, so all five heroes now read as one deliberate set.
+- Wind (01): six turbines as glowing mint wireframe (edge-line towers/nacelles/airfoil blades) with bright hub **nodes** and gold blade-tip motes, spinning, over drifting mint+gold "wind" motes and a central mint halo — echoing the globe's wire+nodes and the particle scene's motes.
+- Emissions (02): a wireframe plant (hyperboloid cooling towers, boiler house, stacks) in cool mint-teal line, venting **rising warm amber/gold carbon motes** (additive, luminous — no more cotton-ball smoke), with blinking red hazard **nodes** and expanding amber pulse **rings** at each stack, over a warm carbon halo. Warm palette marks it as "the problem" while the wireframe keeps it in-family.
+- Both are steady loops. Verified in-browser at full opacity: both render as glowing abstract constructs coherent with scenes 03–05; production build clean, one live canvas, 12 audit checks pass.
+
 ## v5.5.0 — Wind & coal: dark bloom-lit stage + near-photoreal geometry
 - Converted the two remaining bright scenes to the dark, glowing, bloom-lit aesthetic of the globe/solar/particle heroes, so all five now share one cinematic world (new `darkStage` helper: near-black grid floor, faint emerald grid lines, per-scene sky gradient + fog, a central glow the structures rim against). Bloom raised to match (wind 0.7, coal 0.6) so the pale structures glow softly against the night.
 - Redesigned both plants to look almost real. Wind (01): a night wind farm of six turbines with tapered towers, capsule nacelles, coned hubs, and genuinely tapered/twisted airfoil blades (ExtrudeGeometry from a chord-tapered shape), rim-lit by a soft moon glow. Coal (02): hyperboloid cooling towers (LatheGeometry profile — wide base, pinched waist, flared rim) venting light steam, a stepped boiler house with a service duct, and banded smokestacks topped by blinking red hazard beacons trailing dark smoke, all warmed from below by a furnace ember glow. Steam vs. smoke are one vertex-coloured particle system.
