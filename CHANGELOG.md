@@ -1,5 +1,8 @@
 # Changelog
 
+## v5.2.0 — Wind & emissions scenes rebuilt as floating 3D fields (cohesive hero set)
+- Extended the solar scene's floating-field language to the two remaining ground-planted scenes so all five heroes share one aesthetic. Wind (01): 7 turbines dispersed through dawn air at varied depths/angles, blades spinning, bobbing and drifting for parallax around a glowing sun inside a faint wireframe sphere. Emissions (02): 5 smokestacks adrift in a smoggy dusk, each trailing its own rising smoke stream (smoke parented to the stack so it follows the drift), staggered red beacons, gentle sway + parallax, warm haze glow + wireframe sphere. Cooperation (globe) and net-zero (particle ascent) already used orbital/floating 3D and are unchanged. Removed the now-unused ground-plane helper. Verified: all five scenes cycle with exactly one live canvas (clean disposal), zero console errors, no mobile overflow; build + 12 audit checks pass.
+
 ## v5.1.0 — Solar scene rebuilt as a floating 3D panel field
 - Replaced the tidy ground-grid solar array with a dispersed, tumbling panel field in 3D space (per user reference): 16 photovoltaic panels scattered across a wide volume at varied sizes (depth cue), each slowly tumbling on its own axes and bobbing, with the whole field drifting for parallax. A glowing sun sits at the centre inside a faint wireframe geodesic sphere the panels orbit; PV faces catch blue light while edge-on/back faces read aluminium-grey — matching the reference's mix. Airy warm sky; per-scene bloom retuned so only the sun and glints bloom. Verified: full-speed render matches the reference, zero console errors, one live canvas (clean disposal), no mobile overflow; build + 12 audit checks pass.
 
