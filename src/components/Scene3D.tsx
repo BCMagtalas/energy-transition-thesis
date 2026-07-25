@@ -298,80 +298,79 @@ function buildNetwork(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
   };
 }
 
-/* ---------- 04 · solar — golden hour array ---------- */
+/* ---------- 04 · solar — panels drifting through 3D space ---------- */
 function buildSolar(scene: THREE.Scene, textures: THREE.Texture[], dir: THREE.DirectionalLight): Ctl {
-  setSky(scene, [[0, '#0d3b31'], [0.5, '#2f6b4f'], [0.82, '#e8a844'], [1, '#f6c95f']], textures);
-  scene.fog = new THREE.Fog(0x2f6b4f, 14, 36);
-  scene.add(makeGround(0x3f4c2a, -1.7));
+  // Airy warm sky so the dispersed array reads as a bright, weightless field.
+  setSky(scene, [[0, '#123a2c'], [0.5, '#3f7a55'], [0.82, '#d99a4a'], [1, '#f2c86a']], textures);
+  scene.fog = new THREE.Fog(0x3f7a55, 20, 46);
 
-  const sunMat = new THREE.MeshBasicMaterial({ color: 0xffd166 });
-  const sunCore = new THREE.Mesh(new THREE.SphereGeometry(0.42, 16, 16), sunMat);
-  sunCore.position.set(5.6, -0.9, -11);
-  const sunGlow = makeGlow(0xffc65c, 5.5, textures);
+  // Central sun + soft glow, with a faint wireframe sphere the panels orbit.
+  const sunCore = new THREE.Mesh(new THREE.SphereGeometry(0.7, 20, 20), new THREE.MeshBasicMaterial({ color: 0xffd07a }));
+  sunCore.position.set(-1.4, 0.3, -3.5);
+  const sunGlow = makeGlow(0xffc45c, 8.5, textures);
   sunGlow.position.copy(sunCore.position);
   scene.add(sunCore, sunGlow);
-  const glowMat = sunGlow.material as THREE.SpriteMaterial;
-  const horizonColor = new THREE.Color(0xff9a4d);
-  const noonColor = new THREE.Color(0xffe08a);
-  const sunColor = new THREE.Color();
+  const wire = new THREE.Mesh(
+    new THREE.IcosahedronGeometry(3.1, 2),
+    new THREE.MeshBasicMaterial({ color: 0xe8b96a, wireframe: true, transparent: true, opacity: 0.16 })
+  );
+  wire.position.copy(sunCore.position);
+  scene.add(wire);
 
-  const group = new THREE.Group();
-  const panelMat = new THREE.MeshStandardMaterial({ map: pvTexture(textures), roughness: 0.35, metalness: 0.15, emissive: 0x1e3a6b, emissiveIntensity: 0.5 });
-  const frameMat = new THREE.MeshStandardMaterial({ color: 0xaeb6bd, roughness: 0.45, metalness: 0.5 });
-  const postMat = new THREE.MeshStandardMaterial({ color: 0x2e3330, roughness: 0.85 });
-  const rows = 3, cols = 5;
-  // Tops tilted back toward the sun (which sits behind the array); the raised
-  // camera looks down on the faces so the PV glass stays visible.
-  const tilt = -0.42;
-  // Panel + frame pivot together so the array can visibly track the sun.
-  const trackers: { pivot: THREE.Group; phase: number }[] = [];
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      const x = (c - (cols - 1) / 2) * 1.55;
-      const z = (r - (rows - 1) / 2) * 1.4;
-      const y = -1.05;
-      const pivot = new THREE.Group();
-      pivot.position.set(x, y + 0.55, z);
-      pivot.rotation.x = tilt;
-      const frame = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.045, 0.9), frameMat);
-      const panel = new THREE.Mesh(new THREE.BoxGeometry(1.22, 0.055, 0.82), panelMat);
-      panel.position.y = 0.035;
-      pivot.add(frame, panel);
-      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.6, 8), postMat);
-      post.position.set(x, y + 0.2, z);
-      group.add(pivot, post);
-      trackers.push({ pivot, phase: c * 0.12 });
-    }
+  dir.position.set(-2, 3, 4);
+  dir.intensity = 2.1;
+
+  // Shared panel materials: bright PV glass on the top face, aluminium elsewhere.
+  const pvMat = new THREE.MeshStandardMaterial({ map: pvTexture(textures), roughness: 0.3, metalness: 0.2, emissive: 0x14345c, emissiveIntensity: 0.35 });
+  const frameMat = new THREE.MeshStandardMaterial({ color: 0xc2cad1, roughness: 0.5, metalness: 0.55 });
+  const backMat = new THREE.MeshStandardMaterial({ color: 0x8f979e, roughness: 0.7, metalness: 0.3 });
+  const faceMats = [frameMat, frameMat, pvMat, backMat, frameMat, frameMat]; // BoxGeometry +x,-x,+y,-y,+z,-z
+  const panelGeo = new THREE.BoxGeometry(1.15, 0.05, 0.78);
+
+  const field = new THREE.Group();
+  scene.add(field);
+  const panels: { mesh: THREE.Mesh; spinX: number; spinY: number; bobAmp: number; bobSpeed: number; phase: number; baseY: number }[] = [];
+  const COUNT = 16;
+  for (let i = 0; i < COUNT; i++) {
+    const mesh = new THREE.Mesh(panelGeo, faceMats);
+    // Scatter through a wide volume; keep a clear-ish core around the sun.
+    const angle = Math.random() * Math.PI * 2;
+    const radius = 2.4 + Math.random() * 4.6;
+    const x = Math.cos(angle) * radius;
+    const y = (Math.random() - 0.5) * 5;
+    const z = -4.5 + Math.random() * 6.5;
+    const s = 0.55 + Math.random() * 0.9;           // varied size = depth cue
+    mesh.scale.setScalar(s);
+    mesh.position.set(x, y, z);
+    mesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+    field.add(mesh);
+    panels.push({
+      mesh,
+      spinX: (Math.random() - 0.5) * 0.28,
+      spinY: (Math.random() - 0.5) * 0.34,
+      bobAmp: 0.15 + Math.random() * 0.3,
+      bobSpeed: 0.3 + Math.random() * 0.5,
+      phase: Math.random() * Math.PI * 2,
+      baseY: y
+    });
   }
-  group.rotation.y = -0.16;
-  scene.add(group);
 
   return {
-    cam: { pos: [0, 3.3, 8.8], look: [0, -0.5, 0] },
-    bloom: { strength: 0.45, radius: 0.7, threshold: 0.7 },
+    cam: { pos: [0, 0.4, 9], look: [-0.4, 0, -1] },
+    bloom: { strength: 0.55, radius: 0.75, threshold: 0.62 },
     update(t) {
-      // Fast one-way sunrise (~2.5 s), then hold at full height for the rest
-      // of the scene's display time. The scene remounts on every visit, so the
-      // rise replays each time it is shown.
-      const u = Math.min(1, t * 0.4);
-      const h = Math.sin((Math.PI / 2) * u); // eased 0 → 1 elevation
-      const sx = 5.6 - 3.4 * u;
-      const sy = -0.9 + h * 3.8;
-      sunCore.position.set(sx, sy, -11);
-      sunGlow.position.copy(sunCore.position);
-      // Deep amber at the horizon, pale gold at its peak.
-      sunColor.copy(horizonColor).lerp(noonColor, Math.min(1, h * 1.4));
-      sunMat.color.copy(sunColor);
-      glowMat.color.copy(sunColor);
-      sunGlow.scale.setScalar(4.6 + h * 1.5 + Math.sin(t * 0.8) * 0.3);
-      // Scene light follows the sun and brightens toward midday.
-      dir.position.set(sx, Math.max(0.5, sy + 1.5), -6);
-      dir.intensity = 0.9 + h * 1.3;
-      panelMat.emissiveIntensity = 0.3 + 0.35 * h + 0.12 * Math.sin(t * 0.9);
-      group.rotation.y = -0.16 + Math.sin(t * 0.08) * 0.03;
-      // Trackers face the sun: steep back-tilt while it is low on the horizon,
-      // flattening toward horizontal as it climbs, with a slight column stagger.
-      trackers.forEach(({ pivot, phase }) => { pivot.rotation.x = -(0.42 - h * 0.27) + Math.sin(t * 0.35 + phase) * 0.03; });
+      // Each panel tumbles slowly on its own axes and bobs vertically; the whole
+      // field drifts for parallax so the cloud feels alive and three-dimensional.
+      panels.forEach(p => {
+        p.mesh.rotation.x += p.spinX * 0.016;
+        p.mesh.rotation.y += p.spinY * 0.016;
+        p.mesh.position.y = p.baseY + Math.sin(t * p.bobSpeed + p.phase) * p.bobAmp;
+      });
+      field.rotation.y = Math.sin(t * 0.05) * 0.22;
+      field.rotation.x = Math.sin(t * 0.04) * 0.06;
+      pvMat.emissiveIntensity = 0.3 + 0.15 * (0.5 + 0.5 * Math.sin(t * 0.9));
+      wire.rotation.y = t * 0.06;
+      sunGlow.scale.setScalar(8.5 + Math.sin(t * 0.7) * 0.5);
     }
   };
 }

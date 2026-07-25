@@ -1,5 +1,8 @@
 # Changelog
 
+## v5.1.0 — Solar scene rebuilt as a floating 3D panel field
+- Replaced the tidy ground-grid solar array with a dispersed, tumbling panel field in 3D space (per user reference): 16 photovoltaic panels scattered across a wide volume at varied sizes (depth cue), each slowly tumbling on its own axes and bobbing, with the whole field drifting for parallax. A glowing sun sits at the centre inside a faint wireframe geodesic sphere the panels orbit; PV faces catch blue light while edge-on/back faces read aluminium-grey — matching the reference's mix. Airy warm sky; per-scene bloom retuned so only the sun and glints bloom. Verified: full-speed render matches the reference, zero console errors, one live canvas (clean disposal), no mobile overflow; build + 12 audit checks pass.
+
 ## v5.0.4 — Model inspector no longer covers the diagram (desktop split view)
 - On desktop the evidence inspector overlaid the right third of the SEM diagram — hiding the AE/ES outcome nodes and the β5/β6 paths, and often the very node just clicked — contradicting the page's "keeping the full model visible" promise. It is now a master–detail split: selecting a node/coefficient shrinks the diagram to the left (1266px → ~914px at 1332w, all seven nodes still visible) and docks the 340px inspector beside it, covering nothing. Closing returns the diagram to full width. Mobile keeps the overlay (no room to split) with the diagram behind it. Zero overflow in both states; build + 12 audit checks pass.
 
