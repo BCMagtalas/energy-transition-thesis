@@ -261,13 +261,17 @@ function buildWind(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
     [5.4, -4.4, 0.72], [-5.8, -4.8, 0.66], [2.2, -8.0, 0.52],
     [-2.6, -9.5, 0.46], [6.6, -11.0, 0.5]
   ];
+  // Distinct yaw per turbine → rotors seen at varied 3/4 angles, so the farm reads as a
+  // 3D volume rather than flat pinwheels all facing the camera.
+  const yaws = [0.55, -0.6, 0.95, -1.05, 0.35, 1.15, -0.8, 0.5];
   layout.forEach(([x, z, sc], i) => {
     const { turbine, hub } = wireTurbine(sc, bladeFill, bladeEdge, lineMat, fillMat, podMat, nodeMat, textures);
     turbine.position.set(x, -2, z);
-    turbine.rotation.y = -0.22 + (i % 3) * 0.2;
+    turbine.rotation.y = yaws[i % yaws.length];
     scene.add(turbine);
     hubs.push({ hub, rate: 0.5 + (i % 3) * 0.2 });
-    hubPos.push(new THREE.Vector3(x, -2 + 3.4 * sc, z + 0.14 * sc));
+    const c = Math.cos(turbine.rotation.y), sn = Math.sin(turbine.rotation.y);
+    hubPos.push(new THREE.Vector3(x + sn * 0.14 * sc, -2 + 3.4 * sc, z + c * 0.14 * sc));
   });
 
   // Energy-flow: gold motes stream off each hub downwind (+x) → "generation", tying
@@ -317,7 +321,7 @@ function buildWind(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
   return {
     cam: { pos: [0, 0.7, 4.6], look: [0.2, 2.6, -8], fov: 62 },
     bloom: { strength: 0.8, radius: 0.8, threshold: 0.35 },
-    motion: { orbit: 0.08, dolly: 1.5, rise: 0.25 },
+    motion: { orbit: 0.16, dolly: 1.5, rise: 0.25 },
     update(t) {
       // Power-up: blades spool from rest to full speed over ~1.3 s (analytic integral
       // of a linear ramp, so the angle is continuous and always completes).
@@ -487,9 +491,9 @@ function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
   scene.add(new THREE.Points(geo, moteMat));
 
   return {
-    cam: { pos: [0, 0.9, 6.3], look: [-0.2, 2.4, -4], fov: 58 },
+    cam: { pos: [-2.8, 1.0, 6.2], look: [0.4, 2.3, -3.5], fov: 58 },
     bloom: { strength: 0.7, radius: 0.78, threshold: 0.36 },
-    motion: { orbit: 0.1, dolly: 1.1, rise: 0.2 },
+    motion: { orbit: 0.18, dolly: 1.1, rise: 0.2 },
     update(t) {
       halo.scale.setScalar(14 + Math.sin(t * 0.5) * 0.5);
       beacons.forEach(o => {

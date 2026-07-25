@@ -1,5 +1,8 @@
 # Changelog
 
+## v5.8.1 — Real 3D depth in wind & coal
+- The structures read flat because rotors faced the camera (2D pinwheels) and the coal plant was viewed head-on. Gave each turbine a distinct yaw so its rotor is seen at a varied 3/4 angle (genuine 3D volume), swung the coal camera to a 3/4 vantage so the round cooling towers, multi-faced boiler, and receding stacks show their depth, and increased the camera orbit on both (wind 0.08→0.16, coal 0.10→0.18) so the parallax reveals the three-dimensionality as it moves.
+
 ## v5.8.0 — Immersive wind & coal; removed the scattered glow-dots
 - Two changes from feedback. (1) The luminous vertex nodes placed at every joint (turbine bases, cooling-tower rims, boiler vent, pipe junctions) read as scattered clutter — removed them, keeping only the meaningful accents: each turbine's rotor hub and the stacks' red hazard beacons. (2) Made 01/02 immersive instead of a diorama viewed from across a stage: added a per-scene wide-angle field of view (wind 62°, coal 58°), dropped the camera low and moved it into the scene looking upward so the structures loom overhead, gave wind a dominant foreground turbine with the rest of the farm receding into closer fog, and brought the coal camera in so the plant looms and its plumes soar up the full frame. Stronger dolly for a "moving through it" feel.
 
