@@ -102,150 +102,151 @@ function makeGlow(color: number, scale: number, textures: THREE.Texture[]): THRE
   return s;
 }
 
-/* ---------- 01 · wind — turbines drifting through dawn air ---------- */
+/* ---------- 01 · wind — a wind farm on the horizon at dawn ---------- */
 function buildWind(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
-  setSky(scene, [[0, '#032019'], [0.52, '#0c4a38'], [0.8, '#3f8a63'], [1, '#e9c063']], textures);
-  scene.fog = new THREE.Fog(0x0c4a38, 22, 48);
+  setSky(scene, [[0, '#06231b'], [0.42, '#0e4a37'], [0.76, '#3f8a63'], [1, '#f0cf86']], textures);
+  scene.fog = new THREE.Fog(0x2c6349, 16, 44);
 
-  const sunCore = new THREE.Mesh(new THREE.SphereGeometry(0.6, 20, 20), new THREE.MeshBasicMaterial({ color: 0xffe6ad }));
-  sunCore.position.set(-1.3, 0.2, -4);
-  const sun = makeGlow(0xffd98a, 8, textures);
-  sun.position.copy(sunCore.position);
-  const wire = new THREE.Mesh(
-    new THREE.IcosahedronGeometry(3.2, 2),
-    new THREE.MeshBasicMaterial({ color: 0xbfe6cf, wireframe: true, transparent: true, opacity: 0.14 })
-  );
-  wire.position.copy(sunCore.position);
-  scene.add(sunCore, sun, wire);
+  // Soft sun low behind the farm for warm rim-light and silhouettes.
+  const sun = makeGlow(0xffe3a0, 7, textures);
+  sun.position.set(1.2, 0.4, -15);
+  scene.add(sun);
 
-  const towerMat = new THREE.MeshStandardMaterial({ color: 0xeef4ef, roughness: 0.45 });
-  const bladeMat = new THREE.MeshStandardMaterial({ color: 0xf7faf7, roughness: 0.4 });
-  const field = new THREE.Group();
-  scene.add(field);
-  const turbines: { turbine: THREE.Group; hub: THREE.Group; rate: number; baseY: number; bobAmp: number; bobSpeed: number; phase: number }[] = [];
-  const COUNT = 7;
-  for (let i = 0; i < COUNT; i++) {
-    const s = 0.5 + Math.random() * 0.7;            // varied size = depth cue
+  // Ground plane fading into the fog at the horizon.
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(90, 70), new THREE.MeshStandardMaterial({ color: 0x0d3728, roughness: 1 }));
+  ground.rotation.x = -Math.PI / 2;
+  ground.position.y = -2.2;
+  scene.add(ground);
+
+  const towerMat = new THREE.MeshStandardMaterial({ color: 0xe8efe9, roughness: 0.5 });
+  const bladeMat = new THREE.MeshStandardMaterial({ color: 0xf4f8f4, roughness: 0.45 });
+  const hubs: { hub: THREE.Group; rate: number }[] = [];
+  // Staggered [x, z, scale] — nearer turbines larger, for real depth.
+  const layout: [number, number, number][] = [
+    [-3.4, 1.5, 1.15], [1.8, 0, 1.0], [4.6, -2.5, 0.82],
+    [-5.8, -3, 0.72], [-0.6, -5.5, 0.6], [6.6, -6.5, 0.5]
+  ];
+  layout.forEach(([x, z, s], i) => {
     const turbine = new THREE.Group();
-    const h = 3 * s;
-    const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.05 * s, 0.09 * s, h, 10), towerMat);
+    const h = 3.7 * s;
+    const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.05 * s, 0.1 * s, h, 12), towerMat);
     tower.position.y = h / 2;
-    const nacelle = new THREE.Mesh(new THREE.BoxGeometry(0.3 * s, 0.15 * s, 0.15 * s), towerMat);
-    nacelle.position.set(0, h, 0.04);
+    const nacelle = new THREE.Mesh(new THREE.BoxGeometry(0.32 * s, 0.16 * s, 0.16 * s), towerMat);
+    nacelle.position.set(0, h, 0.05);
     const hub = new THREE.Group();
-    hub.position.set(0, h, 0.15 * s);
+    hub.position.set(0, h, 0.16 * s);
     for (let b = 0; b < 3; b++) {
-      const blade = new THREE.Mesh(new THREE.BoxGeometry(0.07 * s, 1.4 * s, 0.02), bladeMat);
-      blade.position.y = 0.7 * s;
+      const blade = new THREE.Mesh(new THREE.BoxGeometry(0.07 * s, 1.65 * s, 0.02), bladeMat);
+      blade.position.y = 0.82 * s;
       const hold = new THREE.Group();
       hold.rotation.z = (b * Math.PI * 2) / 3;
       hold.add(blade);
       hub.add(hold);
     }
     turbine.add(tower, nacelle, hub);
-    const angle = Math.random() * Math.PI * 2;
-    const radius = 2.6 + Math.random() * 4;
-    const y = (Math.random() - 0.5) * 4 - h / 2;
-    turbine.position.set(Math.cos(angle) * radius, y, -4 + Math.random() * 6);
-    turbine.rotation.y = (Math.random() - 0.5) * 0.6;
-    turbine.rotation.z = (Math.random() - 0.5) * 0.22;
-    field.add(turbine);
-    turbines.push({ turbine, hub, rate: 0.8 + (i % 3) * 0.3, baseY: y, bobAmp: 0.12 + Math.random() * 0.22, bobSpeed: 0.3 + Math.random() * 0.4, phase: Math.random() * Math.PI * 2 });
+    turbine.position.set(x, -2.2, z);
+    turbine.rotation.y = -0.3 + Math.random() * 0.6;
+    scene.add(turbine);
+    hubs.push({ hub, rate: 0.7 + (i % 3) * 0.28 });
+  });
+
+  // Faint wind streaks drifting left→right to convey moving air.
+  const count = 180;
+  const geo = new THREE.BufferGeometry();
+  const pos = new Float32Array(count * 3);
+  const spd = new Float32Array(count);
+  for (let i = 0; i < count; i++) {
+    pos[i * 3] = (Math.random() - 0.5) * 26;
+    pos[i * 3 + 1] = Math.random() * 7 - 1.5;
+    pos[i * 3 + 2] = (Math.random() - 0.5) * 12 - 2;
+    spd[i] = 0.03 + Math.random() * 0.06;
   }
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const wind = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xe4f2e9, size: 0.06, map: dotTexture(textures), transparent: true, opacity: 0.32, depthWrite: false }));
+  scene.add(wind);
 
   return {
-    cam: { pos: [0, 0.5, 9], look: [-0.3, 0, -1] },
-    bloom: { strength: 0.4, radius: 0.7, threshold: 0.66 },
+    cam: { pos: [0, 1.1, 9], look: [0, 1.5, -3] },
+    bloom: { strength: 0.4, radius: 0.7, threshold: 0.74 },
     update(t) {
-      turbines.forEach(o => {
-        o.hub.rotation.z = -t * o.rate;
-        o.turbine.position.y = o.baseY + Math.sin(t * o.bobSpeed + o.phase) * o.bobAmp;
-      });
-      field.rotation.y = Math.sin(t * 0.05) * 0.18;
-      field.rotation.x = Math.sin(t * 0.04) * 0.05;
-      sun.scale.setScalar(8 + Math.sin(t * 0.7) * 0.4);
-      wire.rotation.y = t * 0.05;
+      hubs.forEach(o => { o.hub.rotation.z = -t * o.rate; });
+      const arr = geo.attributes.position.array as Float32Array;
+      for (let i = 0; i < count; i++) {
+        arr[i * 3] += spd[i];
+        if (arr[i * 3] > 13) arr[i * 3] = -13;
+      }
+      geo.attributes.position.needsUpdate = true;
+      sun.scale.setScalar(7 + Math.sin(t * 0.6) * 0.3);
     }
   };
 }
 
-/* ---------- 02 · emissions — stacks adrift in a smoggy dusk ---------- */
+/* ---------- 02 · emissions — smokestacks billowing at industrial dusk ---------- */
 function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
-  setSky(scene, [[0, '#10151c'], [0.5, '#2b323c'], [0.82, '#7c4a2c'], [1, '#c9762f']], textures);
-  scene.fog = new THREE.Fog(0x2b323c, 20, 46);
+  setSky(scene, [[0, '#0a0d12'], [0.5, '#221a18'], [0.8, '#5c3420'], [1, '#a85a24']], textures);
+  scene.fog = new THREE.Fog(0x2a1c16, 12, 42);
 
-  const haze = makeGlow(0xc9762f, 9, textures);
-  haze.position.set(-1, 0.2, -4);
-  const wire = new THREE.Mesh(
-    new THREE.IcosahedronGeometry(3.2, 2),
-    new THREE.MeshBasicMaterial({ color: 0xc98a5a, wireframe: true, transparent: true, opacity: 0.12 })
-  );
-  wire.position.copy(haze.position);
-  scene.add(haze, wire);
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(90, 70), new THREE.MeshStandardMaterial({ color: 0x0d0b0a, roughness: 1 }));
+  ground.rotation.x = -Math.PI / 2;
+  ground.position.y = -2;
+  scene.add(ground);
 
-  const stackMat = new THREE.MeshStandardMaterial({ color: 0x39424d, roughness: 0.8 });
-  const capMat = new THREE.MeshStandardMaterial({ color: 0x232a33, roughness: 0.9 });
-  const smokeMat = new THREE.PointsMaterial({ color: 0xaab0b6, size: 0.3, map: dotTexture(textures), transparent: true, opacity: 0.32, depthWrite: false });
-  const field = new THREE.Group();
-  scene.add(field);
-  const stacks: { group: THREE.Group; geo: THREE.BufferGeometry; count: number; seed: Float32Array; topY: number; sway: number; phase: number; baseRotZ: number; beaconMat: THREE.MeshBasicMaterial; beaconPhase: number }[] = [];
-  const N = 5;
-  for (let i = 0; i < N; i++) {
-    const s = 0.55 + Math.random() * 0.7;
-    const h = (2.4 + Math.random() * 1.2) * s;
-    const g = new THREE.Group();
-    const stack = new THREE.Mesh(new THREE.CylinderGeometry(0.22 * s, 0.34 * s, h, 12), stackMat);
-    stack.position.y = h / 2;
-    const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.27 * s, 0.27 * s, 0.14 * s, 12), capMat);
-    cap.position.y = h;
-    const beaconMat = new THREE.MeshBasicMaterial({ color: 0xff6a55, transparent: true });
-    const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.05 * s, 8, 8), beaconMat);
-    beacon.position.set(0.22 * s, h - 0.05, 0);
-    g.add(stack, cap, beacon);
-    // Smoke is a child of the stack so it rises from the top wherever the stack drifts.
-    const count = 90;
-    const geo = new THREE.BufferGeometry();
-    const pos = new Float32Array(count * 3);
-    const seed = new Float32Array(count);
-    for (let k = 0; k < count; k++) {
-      pos[k * 3] = (Math.random() - 0.5) * 0.25;
-      pos[k * 3 + 1] = h + Math.random() * 3;
-      pos[k * 3 + 2] = (Math.random() - 0.5) * 0.25;
-      seed[k] = Math.random();
-    }
-    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    g.add(new THREE.Points(geo, smokeMat));
-    const angle = Math.random() * Math.PI * 2;
-    const radius = 2.4 + Math.random() * 3.6;
-    g.position.set(Math.cos(angle) * radius, (Math.random() - 0.5) * 3 - h / 2, -3.5 + Math.random() * 5);
-    const baseRotZ = (Math.random() - 0.5) * 0.25;
-    g.rotation.set(0, (Math.random() - 0.5) * 0.6, baseRotZ);
-    field.add(g);
-    stacks.push({ group: g, geo, count, seed, topY: h, sway: 0.05 + Math.random() * 0.06, phase: Math.random() * Math.PI * 2, baseRotZ, beaconMat, beaconPhase: i * 1.5 });
+  const haze = makeGlow(0xc9762f, 10, textures);
+  haze.position.set(0.6, -0.4, -13);
+  scene.add(haze);
+
+  const stackMat = new THREE.MeshStandardMaterial({ color: 0x2b3138, roughness: 0.85 });
+  const capMat = new THREE.MeshStandardMaterial({ color: 0x1a1e23, roughness: 0.9 });
+  const layout: [number, number, number][] = [[-2.6, 1, 1.1], [0.6, -0.5, 1.28], [3.4, -2.5, 0.92], [-4.6, -3.5, 0.7]];
+  const beacons: { mat: THREE.MeshBasicMaterial; phase: number }[] = [];
+  const tops: [number, number, number][] = [];
+  layout.forEach(([x, z, s], i) => {
+    const h = 3.3 * s;
+    const stack = new THREE.Mesh(new THREE.CylinderGeometry(0.22 * s, 0.36 * s, h, 16), stackMat);
+    stack.position.set(x, -2 + h / 2, z);
+    const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.27 * s, 0.27 * s, 0.16 * s, 16), capMat);
+    cap.position.set(x, -2 + h, z);
+    const mat = new THREE.MeshBasicMaterial({ color: 0xff5a44, transparent: true });
+    const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.06 * s, 8, 8), mat);
+    beacon.position.set(x + 0.22 * s, -2 + h, z);
+    scene.add(stack, cap, beacon);
+    beacons.push({ mat, phase: i * 1.4 });
+    tops.push([x, -2 + h, z]);
+  });
+
+  // Billowing smoke: rises, spreads outward, and drifts downwind as it climbs.
+  const count = 520;
+  const geo = new THREE.BufferGeometry();
+  const pos = new Float32Array(count * 3);
+  const seed = new Float32Array(count);
+  for (let i = 0; i < count; i++) {
+    const [sx, sy, sz] = tops[i % tops.length];
+    pos[i * 3] = sx;
+    pos[i * 3 + 1] = sy + Math.random() * 6;
+    pos[i * 3 + 2] = sz;
+    seed[i] = Math.random();
   }
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const smoke = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xbfc3c7, size: 0.5, map: dotTexture(textures), transparent: true, opacity: 0.2, depthWrite: false }));
+  scene.add(smoke);
 
   return {
-    cam: { pos: [0, 0.6, 9], look: [-0.3, 0.2, -1] },
-    bloom: { strength: 0.5, radius: 0.65, threshold: 0.58 },
+    cam: { pos: [0, 1.3, 9], look: [0, 1.9, -3] },
+    bloom: { strength: 0.45, radius: 0.7, threshold: 0.62 },
     update(t) {
-      stacks.forEach(o => {
-        o.beaconMat.opacity = 0.3 + 0.7 * Math.abs(Math.sin(t * 2.2 + o.beaconPhase));
-        o.group.rotation.z = o.baseRotZ + Math.sin(t * 0.5 + o.phase) * o.sway;
-        const arr = o.geo.attributes.position.array as Float32Array;
-        for (let k = 0; k < o.count; k++) {
-          arr[k * 3 + 1] += 0.012 + o.seed[k] * 0.01;
-          arr[k * 3] += Math.sin(arr[k * 3 + 1] * 1.6 + o.seed[k] * 9) * 0.002;
-          if (arr[k * 3 + 1] > o.topY + 3.4) {
-            arr[k * 3] = (Math.random() - 0.5) * 0.25;
-            arr[k * 3 + 1] = o.topY;
-            arr[k * 3 + 2] = (Math.random() - 0.5) * 0.25;
-          }
-        }
-        o.geo.attributes.position.needsUpdate = true;
-      });
-      field.rotation.y = Math.sin(t * 0.05) * 0.16;
-      haze.scale.setScalar(9 + Math.sin(t * 0.6) * 0.5);
-      wire.rotation.y = t * 0.05;
+      // Sharp blink for the aircraft-warning beacons.
+      beacons.forEach(o => { o.mat.opacity = 0.25 + 0.75 * Math.pow(Math.abs(Math.sin(t * 2 + o.phase)), 3); });
+      const arr = geo.attributes.position.array as Float32Array;
+      for (let i = 0; i < count; i++) {
+        const [sx, sy, sz] = tops[i % tops.length];
+        arr[i * 3 + 1] += 0.014 + seed[i] * 0.012;
+        const age = arr[i * 3 + 1] - sy;
+        arr[i * 3] += 0.01 + Math.sin(seed[i] * 20 + t * 0.4) * 0.004 + age * 0.0016;  // drift + billow
+        arr[i * 3 + 2] += Math.cos(seed[i] * 20) * 0.003;
+        if (arr[i * 3 + 1] > sy + 6) { arr[i * 3] = sx; arr[i * 3 + 1] = sy; arr[i * 3 + 2] = sz; }
+      }
+      geo.attributes.position.needsUpdate = true;
+      haze.scale.setScalar(10 + Math.sin(t * 0.5) * 0.5);
     }
   };
 }
