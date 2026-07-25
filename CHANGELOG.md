@@ -1,5 +1,8 @@
 # Changelog
 
+## v5.8.0 — Immersive wind & coal; removed the scattered glow-dots
+- Two changes from feedback. (1) The luminous vertex nodes placed at every joint (turbine bases, cooling-tower rims, boiler vent, pipe junctions) read as scattered clutter — removed them, keeping only the meaningful accents: each turbine's rotor hub and the stacks' red hazard beacons. (2) Made 01/02 immersive instead of a diorama viewed from across a stage: added a per-scene wide-angle field of view (wind 62°, coal 58°), dropped the camera low and moved it into the scene looking upward so the structures loom overhead, gave wind a dominant foreground turbine with the rest of the farm receding into closer fog, and brought the coal camera in so the plant looms and its plumes soar up the full frame. Stronger dolly for a "moving through it" feel.
+
 ## v5.7.5 — Wind & coal matched to the premium density of the other scenes
 - The two ground scenes read as less premium than the globe/solar/particle heroes because they were sparser — thin line-art, empty space, dull scattered dots — versus the others' dense particles, intricate wireframe, and glowing vertex nodes. Closed the gap: added a distant **starfield** to both for atmospheric depth; added **glowing vertex nodes** (the globe's signature accent) at the structural joints — turbine bases in wind; cooling-tower rims, boiler vent, and pipe junctions in coal; and made the particles **denser and more luminous** (wind drifting motes 210→370 total and brighter; coal plume per-emitter 150→220 with brighter, more saturated amber). Both now hold their own next to the other three.
 

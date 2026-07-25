@@ -12,7 +12,7 @@ const GOLD = 0xf5b942;
 
 type Ctl = {
   update: (t: number) => void;
-  cam: { pos: [number, number, number]; look: [number, number, number] };
+  cam: { pos: [number, number, number]; look: [number, number, number]; fov?: number };
   /** Per-scene bloom tuning: what counts as "bright" and how strongly it glows. */
   bloom: { strength: number; radius: number; threshold: number };
   /** Optional cinematic camera move (orbit radians / dolly units / vertical rise / time scale). */
@@ -145,13 +145,6 @@ function starField(scene: THREE.Scene, textures: THREE.Texture[], count: number,
   })));
 }
 
-/** A bright vertex node + soft glow — the signature accent that makes the globe scene read premium. */
-function glowNode(parent: THREE.Object3D, x: number, y: number, z: number, color: number, textures: THREE.Texture[], glow: number): void {
-  const node = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 8), new THREE.MeshBasicMaterial({ color: 0xdff7ec }));
-  node.position.set(x, y, z);
-  const gl = makeGlow(color, glow, textures); gl.position.set(x, y, z);
-  parent.add(node, gl);
-}
 
 /* ---------- shared dark "digital night" stage (matches scenes 03–05) ---------- */
 function darkStage(
@@ -239,6 +232,7 @@ function coolingTowerGeo(s: number): THREE.LatheGeometry {
 /* ---------- 01 · wind — a wireframe wind farm in a stream of light ---------- */
 function buildWind(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
   darkStage(scene, textures, [[0, '#02140e'], [0.6, '#083626'], [1, '#0c4433']], 0x083626, 0x2f9e82);
+  scene.fog = new THREE.Fog(0x083626, 13, 42);   // closer fog so the far turbines fade into a deep field
 
   // Soft, off-centre mint halo — ambient bloom the structures read against, not a disc.
   const halo = makeSoftGlow(MINT, 12, textures);
@@ -260,18 +254,18 @@ function buildWind(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
 
   const hubs: { hub: THREE.Group; rate: number }[] = [];
   const hubPos: THREE.Vector3[] = [];
-  // Balanced spread — left / centre / right anchors up front, so the frame never
-  // has a hollow middle, plus receding pairs for depth.
+  // Immersive field: a dominant foreground turbine (right), a near-left one, then a
+  // spread of turbines receding deep into the fog — you're standing inside the farm.
   const layout: [number, number, number][] = [
-    [-3.0, 0.2, 1.05], [2.9, -0.4, 1.0], [-0.5, -2.3, 0.76],
-    [-5.6, -3.0, 0.64], [5.2, -3.3, 0.6], [2.2, -5.6, 0.5]
+    [2.9, 2.0, 1.5], [-3.6, 0.2, 1.15], [0.2, -3.0, 0.85],
+    [5.4, -4.4, 0.72], [-5.8, -4.8, 0.66], [2.2, -8.0, 0.52],
+    [-2.6, -9.5, 0.46], [6.6, -11.0, 0.5]
   ];
   layout.forEach(([x, z, sc], i) => {
     const { turbine, hub } = wireTurbine(sc, bladeFill, bladeEdge, lineMat, fillMat, podMat, nodeMat, textures);
     turbine.position.set(x, -2, z);
     turbine.rotation.y = -0.22 + (i % 3) * 0.2;
     scene.add(turbine);
-    glowNode(scene, x, -2, z, MINT, textures, 0.45);   // glowing base joint where the tower meets the ground
     hubs.push({ hub, rate: 0.5 + (i % 3) * 0.2 });
     hubPos.push(new THREE.Vector3(x, -2 + 3.4 * sc, z + 0.14 * sc));
   });
@@ -321,9 +315,9 @@ function buildWind(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
   const fields = [mote(250, MINT, 0.08, 0.03), mote(120, GOLD, 0.065, 0.045)];
 
   return {
-    cam: { pos: [0, 1.1, 9], look: [0, 1.3, -3] },
+    cam: { pos: [0, 0.7, 4.6], look: [0.2, 2.6, -8], fov: 62 },
     bloom: { strength: 0.8, radius: 0.8, threshold: 0.35 },
-    motion: { orbit: 0.12, dolly: 0.5, rise: 0.18 },
+    motion: { orbit: 0.08, dolly: 1.5, rise: 0.25 },
     update(t) {
       // Power-up: blades spool from rest to full speed over ~1.3 s (analytic integral
       // of a linear ramp, so the angle is continuous and always completes).
@@ -362,6 +356,7 @@ function buildWind(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
 /* ---------- 02 · emissions — a wireframe plant venting rising carbon ---------- */
 function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
   darkStage(scene, textures, [[0, '#0a0b0e'], [0.55, '#20140f'], [1, '#38210f']], 0x20140f, 0x6f4a2a);
+  scene.fog = new THREE.Fog(0x20140f, 15, 46);   // closer fog for depth around the looming plant
 
   // Soft warm carbon halo — diffuse ambient bloom filling the mid-ground, not a hard dome.
   const halo = makeSoftGlow(0xdb7a2e, 14, textures);
@@ -407,7 +402,6 @@ function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
     const m = new THREE.LineSegments(new THREE.EdgesGeometry(coolingTowerGeo(s)), structMat);
     m.position.set(x, -2, z);
     scene.add(m);
-    glowNode(scene, x, -2 + 2.7 * s, z, 0x2fd6c0, textures, 0.4);   // glowing rim joint at the tower mouth
     emitters.push({ pos: [x, -2 + 2.65 * s, z], r: 0.36 * s, rate: 0.012 });
   };
   coolTower(-2.5, -2.0, 0.98);
@@ -429,7 +423,6 @@ function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
   const ventEdge = new THREE.LineSegments(new THREE.EdgesGeometry(ventGeo), structMat); ventEdge.position.set(-0.4, 2.85, 0);
   bldg.add(vent, ventEdge);
   scene.add(bldg);
-  glowNode(scene, -0.6, -2 + 3.1, 0.4, 0x2fd6c0, textures, 0.4);        // glowing joint at the vent mouth
   emitters.push({ pos: [-0.6, -2 + 3.1, 0.4], r: 0.2, rate: 0.014 });   // central vent plume
 
   // Wireframe smokestacks — clustered right beside the boiler, red bands + beacons.
@@ -462,9 +455,6 @@ function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
   pipe(new THREE.Vector3(0.75, -1.4, 0.2), new THREE.Vector3(1.5, -1.4, -1.2), 0.12);   // boiler → stack (flue duct)
   pipe(new THREE.Vector3(-1.1, -1.5, 0.3), new THREE.Vector3(-2.4, -1.6, -1.9), 0.1);   // boiler → cooling towers
   pipe(new THREE.Vector3(-2.6, -1.6, -2.0), new THREE.Vector3(-3.6, -1.7, -3.1), 0.08); // tower → tower link
-  // Glowing junction nodes where the plumbing meets each unit.
-  ([[0.75, -1.4, 0.2], [1.5, -1.4, -1.2], [-1.1, -1.5, 0.3], [-2.4, -1.6, -1.9]] as [number, number, number][])
-    .forEach(([jx, jy, jz]) => glowNode(scene, jx, jy, jz, 0x2fd6c0, textures, 0.3));
 
   // Rising carbon plumes — dense, soft, columnar, luminous amber (pollution with glow).
   const per = 220;
@@ -497,9 +487,9 @@ function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
   scene.add(new THREE.Points(geo, moteMat));
 
   return {
-    cam: { pos: [0, 1.5, 9.4], look: [0, 1.0, -2] },
+    cam: { pos: [0, 0.9, 6.3], look: [-0.2, 2.4, -4], fov: 58 },
     bloom: { strength: 0.7, radius: 0.78, threshold: 0.36 },
-    motion: { orbit: 0.13, dolly: 0.5, rise: 0.18 },
+    motion: { orbit: 0.1, dolly: 1.1, rise: 0.2 },
     update(t) {
       halo.scale.setScalar(14 + Math.sin(t * 0.5) * 0.5);
       beacons.forEach(o => {
@@ -790,6 +780,8 @@ export default function Scene3D({ type, active }: { type: Scene3DType; active: b
     const [cx, cy, cz] = controller.cam.pos;
     const look = new THREE.Vector3(...controller.cam.look);
     camera.position.set(cx, cy, cz);
+    camera.fov = controller.cam.fov ?? 48;   // wider fov = more immersive per scene
+    camera.updateProjectionMatrix();
     camera.lookAt(look);
 
     // Post-processing: render → bloom (bright glows only, tuned per scene) → sRGB output.
