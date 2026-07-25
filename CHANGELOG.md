@@ -1,5 +1,8 @@
 # Changelog
 
+## v5.7.2 — Coal scene: solid boiler, filled centre, pollution plumes
+- Critical-review fixes. (1) Boiler house rebuilt as one coherent, **opaque** stepped structure (main hall + boiler block + vent stack) so it reads as a solid building — the previous two see-through boxes clipped through each other and the grid. (2) A central plume now vents from the boiler so the middle of the frame isn't dead (plumes span left/centre/right). (3) The two cooling towers are spaced apart so both silhouettes read instead of fusing. (4) Smokestacks widened, spaced apart, and the red hazard bands restored (not just beacon dots). (5) Emissions retuned from sparse gold glitter to dense, soft, columnar, sooty-amber plumes that widen as they climb — reads as pollution, not fireworks. Also tightened the camera orbit (0.2→0.13) to keep the composition centred.
+
 ## v5.7.1 — Rebalanced the wind farm composition
 - The turbines were bunching to the left/right edges with a hollow upper-centre, worsened by the new camera orbit swinging the farm sideways at its extremes. Rebalanced the layout with left/centre/right anchors up front (added a mid turbine to fill the middle) and tightened the wind camera orbit (0.2→0.12) and dolly (0.7→0.5) so the farm stays centred across the whole move. Verified balanced at multiple orbit phases.
 

@@ -350,73 +350,86 @@ function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
 
   // Structures share the wireframe language of the globe, in a cool mint-teal line.
   const structMat = new THREE.LineBasicMaterial({ color: 0x2fbf9a, transparent: true, opacity: 0.55 });
-  // Dark filled mass so buildings read as solid volumes rather than empty crates.
-  const massMat = new THREE.MeshBasicMaterial({ color: 0x08251c, transparent: true, opacity: 0.6, side: THREE.DoubleSide, depthWrite: false });
+  const hazardMat = new THREE.LineBasicMaterial({ color: 0xff5a44, transparent: true, opacity: 0.9 });
+  // Opaque dark mass so the boiler house reads as a solid volume, not a glass crate.
+  const massMat = new THREE.MeshBasicMaterial({ color: 0x05160f });
 
   type Emitter = { pos: [number, number, number]; r: number; rate: number };
   const emitters: Emitter[] = [];
 
-  // Wireframe hyperboloid cooling towers.
+  // Wireframe hyperboloid cooling towers — spaced so both silhouettes read separately.
   const coolTower = (x: number, z: number, s: number) => {
     const m = new THREE.LineSegments(new THREE.EdgesGeometry(coolingTowerGeo(s)), structMat);
     m.position.set(x, -2, z);
     scene.add(m);
-    emitters.push({ pos: [x, -2 + 2.65 * s, z], r: 0.42 * s, rate: 0.012 });
+    emitters.push({ pos: [x, -2 + 2.65 * s, z], r: 0.3 * s, rate: 0.012 });
   };
-  coolTower(-2.2, -1.7, 1.05);
-  coolTower(-3.7, -3.6, 0.82);
+  coolTower(-2.7, -1.6, 1.05);
+  coolTower(-4.7, -3.5, 0.85);
 
-  // Boiler house: solid dark mass + bright edges + a few structural ribs on the front face.
+  // Boiler house: one coherent, solid, stepped structure with a vent stack.
   const bldg = new THREE.Group();
-  bldg.position.set(0.7, -2, -1.3);
-  const baseGeo = new THREE.BoxGeometry(1.9, 1.6, 1.4);
-  const base = new THREE.Mesh(baseGeo, massMat); base.position.y = 0.8;
-  const baseEdge = new THREE.LineSegments(new THREE.EdgesGeometry(baseGeo), structMat); baseEdge.position.y = 0.8;
-  const upGeo = new THREE.BoxGeometry(1.15, 0.85, 1.0);
-  const upper = new THREE.Mesh(upGeo, massMat); upper.position.set(-0.25, 1.85, 0);
-  const upEdge = new THREE.LineSegments(new THREE.EdgesGeometry(upGeo), structMat); upEdge.position.set(-0.25, 1.85, 0);
-  bldg.add(base, baseEdge, upper, upEdge);
-  const ribGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, -0.75, 0), new THREE.Vector3(0, 0.75, 0)]);
-  for (let r = -1; r <= 1; r++) {
-    const rib = new THREE.Line(ribGeo, structMat);
-    rib.position.set(r * 0.5, 0.8, 0.7);
-    bldg.add(rib);
-  }
+  bldg.position.set(0.5, -2, -1.4);
+  const addBox = (w: number, h: number, d: number, x: number, yc: number) => {
+    const g = new THREE.BoxGeometry(w, h, d);
+    const mesh = new THREE.Mesh(g, massMat); mesh.position.set(x, yc, 0);
+    const edge = new THREE.LineSegments(new THREE.EdgesGeometry(g), structMat); edge.position.set(x, yc, 0);
+    bldg.add(mesh, edge);
+  };
+  addBox(2.0, 1.3, 1.3, 0, 0.65);          // main hall
+  addBox(1.0, 1.3, 1.0, -0.4, 1.95);       // stepped boiler block sitting flush on top
+  const ventGeo = new THREE.CylinderGeometry(0.13, 0.16, 0.5, 10);
+  const vent = new THREE.Mesh(ventGeo, massMat); vent.position.set(-0.4, 2.85, 0);
+  const ventEdge = new THREE.LineSegments(new THREE.EdgesGeometry(ventGeo), structMat); ventEdge.position.set(-0.4, 2.85, 0);
+  bldg.add(vent, ventEdge);
   scene.add(bldg);
+  // Central plume from the vent so the middle of the frame isn't dead.
+  emitters.push({ pos: [0.5 - 0.4, -2 + 3.1, -1.4], r: 0.16, rate: 0.014 });
 
-  // Wireframe smokestacks topped with small blinking red hazard nodes.
+  // Wireframe smokestacks — wider, spaced apart, with red hazard bands + blinking beacons.
   const beacons: { mat: THREE.MeshBasicMaterial; glow: THREE.Sprite; phase: number }[] = [];
-  ([[2.5, -1.6, 1.05], [3.4, -3.3, 0.9]] as [number, number, number][]).forEach(([x, z, s], i) => {
-    const st = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.CylinderGeometry(0.14 * s, 0.2 * s, 3.2 * s, 8)), structMat);
-    st.position.set(x, -2 + 1.6 * s, z);
+  ([[2.7, -1.5, 1.1], [4.0, -3.2, 0.92]] as [number, number, number][]).forEach(([x, z, s], i) => {
+    const H = 3.2 * s;
+    const stGeo = new THREE.CylinderGeometry(0.17 * s, 0.24 * s, H, 10);
+    const st = new THREE.LineSegments(new THREE.EdgesGeometry(stGeo), structMat);
+    st.position.set(x, -2 + H / 2, z);
     scene.add(st);
-    const topY = -2 + 3.2 * s;
+    [0.72, 0.86].forEach(f => {                         // two red hazard bands near the top
+      const r = (0.17 + (0.24 - 0.17) * (1 - f)) * s + 0.006;
+      const bandGeo = new THREE.CylinderGeometry(r, r, 0.16 * s, 10);
+      const band = new THREE.LineSegments(new THREE.EdgesGeometry(bandGeo), hazardMat);
+      band.position.set(x, -2 + H * f, z);
+      scene.add(band);
+    });
+    const topY = -2 + H;
     const bMat = new THREE.MeshBasicMaterial({ color: 0xff5a44, transparent: true });
-    const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.055 * s, 10, 10), bMat);
+    const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.06 * s, 10, 10), bMat);
     beacon.position.set(x, topY, z);
-    const bGlow = makeGlow(0xff5a44, 0.5, textures);
+    const bGlow = makeGlow(0xff5a44, 0.55, textures);
     bGlow.position.set(x, topY, z);
     scene.add(beacon, bGlow);
     beacons.push({ mat: bMat, glow: bGlow, phase: i * 2.1 });
-    emitters.push({ pos: [x, topY, z], r: 0.12 * s, rate: 0.016 });
+    emitters.push({ pos: [x, topY, z], r: 0.1 * s, rate: 0.016 });
   });
 
-  // Rising carbon motes (warm amber → gold) — the emissions themselves, as luminous particles.
-  const per = 90;
+  // Rising carbon plumes — dense, soft, columnar, sooty amber (pollution, not sparks).
+  const per = 120;
   const count = emitters.length * per;
-  const RISE = 3.6;
+  const RISE = 3.8;
   const geo = new THREE.BufferGeometry();
   const pos = new Float32Array(count * 3);
   const col = new Float32Array(count * 3);
   const seed = new Float32Array(count);
-  const amber = [0.88, 0.55, 0.2], gold = [0.96, 0.73, 0.26];
+  const soot = [0.62, 0.36, 0.16], amber = [0.82, 0.52, 0.2];
   emitters.forEach((e, ei) => {
     for (let j = 0; j < per; j++) {
       const idx = ei * per + j, i3 = idx * 3;
-      pos[i3] = e.pos[0] + (Math.random() - 0.5) * e.r * 2;
-      pos[i3 + 1] = e.pos[1] + Math.random() * RISE;
-      pos[i3 + 2] = e.pos[2] + (Math.random() - 0.5) * e.r * 2;
-      const c = j % 3 === 0 ? gold : amber;
+      const h0 = Math.random() * RISE;
+      const spread = e.r * (1 + h0 * 0.5);             // plume widens as it climbs
+      pos[i3] = e.pos[0] + (Math.random() - 0.5) * spread;
+      pos[i3 + 1] = e.pos[1] + h0;
+      pos[i3 + 2] = e.pos[2] + (Math.random() - 0.5) * spread;
+      const c = j % 4 === 0 ? amber : soot;
       col[i3] = c[0]; col[i3 + 1] = c[1]; col[i3 + 2] = c[2];
       seed[idx] = Math.random();
     }
@@ -424,15 +437,15 @@ function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
   geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
   geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
   const moteMat = new THREE.PointsMaterial({
-    size: 0.12, map: dotTexture(textures), vertexColors: true, transparent: true,
-    opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false
+    size: 0.09, map: dotTexture(textures), vertexColors: true, transparent: true,
+    opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false
   });
   scene.add(new THREE.Points(geo, moteMat));
 
   return {
     cam: { pos: [0, 1.5, 9.4], look: [0, 1.0, -2] },
-    bloom: { strength: 0.75, radius: 0.78, threshold: 0.34 },
-    motion: { orbit: 0.2, dolly: 0.7, rise: 0.2 },
+    bloom: { strength: 0.7, radius: 0.78, threshold: 0.36 },
+    motion: { orbit: 0.13, dolly: 0.5, rise: 0.18 },
     update(t) {
       halo.scale.setScalar(14 + Math.sin(t * 0.5) * 0.5);
       beacons.forEach(o => {
@@ -446,12 +459,12 @@ function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
         const top = e.pos[1] + RISE;
         for (let j = 0; j < per; j++) {
           const idx = ei * per + j, i3 = idx * 3;
-          arr[i3 + 1] += e.rate + seed[idx] * 0.01;
-          arr[i3] += Math.sin(seed[idx] * 20 + t * 0.4) * 0.003;
+          arr[i3 + 1] += e.rate + seed[idx] * 0.008;
+          arr[i3] += Math.sin(seed[idx] * 20 + t * 0.4) * 0.0022;
           if (arr[i3 + 1] > top) {
-            arr[i3] = e.pos[0] + (Math.random() - 0.5) * e.r * 2;
+            arr[i3] = e.pos[0] + (Math.random() - 0.5) * e.r;
             arr[i3 + 1] = e.pos[1];
-            arr[i3 + 2] = e.pos[2] + (Math.random() - 0.5) * e.r * 2;
+            arr[i3 + 2] = e.pos[2] + (Math.random() - 0.5) * e.r;
           }
         }
       }
