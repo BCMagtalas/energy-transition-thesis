@@ -1,5 +1,9 @@
 # Changelog
 
+## v5.7.0 — Cinematic pass on all five hero scenes
+- The heroes were static tableaux that only rotated. Added real motion & depth. (1) Cinematic camera: a slow continuous orbit + dolly + vertical rise around each scene's look-target (tuned per scene via a new `motion` field), so near objects sweep past far ones — genuine parallax and depth. Reduced-motion holds the camera still. (2) Wind: gold energy-flow streams now spin off each turbine hub and flow downwind, tying the particulate to the turbines ("generation") instead of drifting independently; the blades also power up — spooling from rest to full speed over ~1.3 s on each appearance (analytic ramp, always completes). (3) Atmosphere: a wide low horizon-glow band adds depth behind the wind and coal scenes. (4) Nudged the tall near turbine left of the caption column so it no longer runs behind the text.
+- Verified in-browser: camera parallax confirmed across frames, energy streams read, globe/particles gain a dynamic turntable presence; production build + tsc clean, 12 audit checks pass.
+
 ## v5.6.4 — Solar panels no longer clip the sun or each other
 - The panels were scattered at random positions in a box while the whole field rotated around the world origin (with the sun off to one side), so rotation dragged panels through the sun and random placement let them overlap. Reworked without a physics engine: panels are now placed on an even Fibonacci-sphere shell **around the sun**, the field is parented **to the sun** so its slow rotation is a rigid orbit (constant distance to the sun, constant spacing between panels), and each panel only tumbles in place + drifts radially along its own spoke (clamped clear of the sun). Even spacing + rigid rotation = no intersections, ever. Also reads better as an array orbiting the sun.
 

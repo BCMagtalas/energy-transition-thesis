@@ -15,6 +15,8 @@ type Ctl = {
   cam: { pos: [number, number, number]; look: [number, number, number] };
   /** Per-scene bloom tuning: what counts as "bright" and how strongly it glows. */
   bloom: { strength: number; radius: number; threshold: number };
+  /** Optional cinematic camera move (orbit radians / dolly units / vertical rise / time scale). */
+  motion?: { orbit?: number; dolly?: number; rise?: number; speed?: number };
 };
 
 /* ---------- shared helpers ---------- */
@@ -219,6 +221,11 @@ function buildWind(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
   const halo = makeSoftGlow(MINT, 12, textures);
   halo.position.set(3.2, 1.5, -6);
   scene.add(halo);
+  // Wide, low horizon glow band = atmospheric depth behind the farm.
+  const horizon = makeSoftGlow(0x2fd6a8, 1, textures);
+  horizon.scale.set(30, 6, 1);
+  horizon.position.set(0, -1.7, -9);
+  scene.add(horizon);
 
   const lineMat = new THREE.LineBasicMaterial({ color: MINT, transparent: true, opacity: 0.72 });
   const fillMat = new THREE.MeshBasicMaterial({ color: MINT, transparent: true, opacity: 0.18, side: THREE.DoubleSide, depthWrite: false });
@@ -228,10 +235,11 @@ function buildWind(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
   const bladeEdge = new THREE.EdgesGeometry(bladeFill);
 
   const hubs: { hub: THREE.Group; rate: number }[] = [];
-  // A clearer near→far farm: two near turbines, then receding pairs — no hard edge-crop.
+  const hubPos: THREE.Vector3[] = [];
+  // A clearer near→far farm; the tall near turbine sits left of the caption column.
   const layout: [number, number, number][] = [
-    [-2.6, 0.4, 1.12], [2.7, -0.6, 0.95], [-5.4, -2.9, 0.72],
-    [5.6, -3.2, 0.66], [0.5, -5.0, 0.55], [-1.9, -7.0, 0.45]
+    [-3.7, 0.4, 1.12], [2.7, -0.6, 0.95], [-6.0, -2.9, 0.72],
+    [5.6, -3.2, 0.66], [1.2, -5.0, 0.55], [-1.6, -7.2, 0.45]
   ];
   layout.forEach(([x, z, sc], i) => {
     const { turbine, hub } = wireTurbine(sc, bladeFill, bladeEdge, lineMat, fillMat, podMat, nodeMat, textures);
@@ -239,7 +247,32 @@ function buildWind(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
     turbine.rotation.y = -0.22 + (i % 3) * 0.2;
     scene.add(turbine);
     hubs.push({ hub, rate: 0.5 + (i % 3) * 0.2 });
+    hubPos.push(new THREE.Vector3(x, -2 + 3.4 * sc, z + 0.14 * sc));
   });
+
+  // Energy-flow: gold motes stream off each hub downwind (+x) → "generation", tying
+  // the particulate to the turbines instead of drifting independently.
+  const streamPer = 24;
+  const sCount = hubPos.length * streamPer;
+  const sGeo = new THREE.BufferGeometry();
+  const sPos = new Float32Array(sCount * 3);
+  const sSeed = new Float32Array(sCount);
+  const RUN = 6.5;
+  hubPos.forEach((hp, hi) => {
+    for (let j = 0; j < streamPer; j++) {
+      const idx = hi * streamPer + j, i3 = idx * 3;
+      sPos[i3] = hp.x + Math.random() * RUN;
+      sPos[i3 + 1] = hp.y + (Math.random() - 0.5) * 0.4;
+      sPos[i3 + 2] = hp.z + (Math.random() - 0.5) * 0.4;
+      sSeed[idx] = Math.random();
+    }
+  });
+  sGeo.setAttribute('position', new THREE.BufferAttribute(sPos, 3));
+  const streamMat = new THREE.PointsMaterial({
+    color: GOLD, size: 0.085, map: dotTexture(textures), transparent: true,
+    opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false
+  });
+  scene.add(new THREE.Points(sGeo, streamMat));
 
   // Drifting "wind" motes (mint + gold) streaming left-to-right — the particle/traveler motif.
   const mote = (n: number, color: number, size: number, speed: number) => {
@@ -264,8 +297,13 @@ function buildWind(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
   return {
     cam: { pos: [0, 1.1, 9], look: [0, 1.3, -3] },
     bloom: { strength: 0.8, radius: 0.8, threshold: 0.35 },
+    motion: { orbit: 0.2, dolly: 0.7, rise: 0.22 },
     update(t) {
-      hubs.forEach(o => { o.hub.rotation.z = -t * o.rate; });
+      // Power-up: blades spool from rest to full speed over ~1.3 s (analytic integral
+      // of a linear ramp, so the angle is continuous and always completes).
+      const T = 1.3;
+      const ramp = t < T ? (t * t) / (2 * T) : (T / 2 + (t - T));
+      hubs.forEach(o => { o.hub.rotation.z = -o.rate * ramp; });
       halo.scale.setScalar(12 + Math.sin(t * 0.6) * 0.5);
       fields.forEach(f => {
         const arr = f.geo.attributes.position.array as Float32Array;
@@ -276,6 +314,21 @@ function buildWind(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
         }
         f.geo.attributes.position.needsUpdate = true;
       });
+      // Energy streams flow downwind off each hub, shimmering as they go.
+      const arr = sGeo.attributes.position.array as Float32Array;
+      hubPos.forEach((hp, hi) => {
+        for (let j = 0; j < streamPer; j++) {
+          const idx = hi * streamPer + j, i3 = idx * 3;
+          arr[i3] += 0.05 + sSeed[idx] * 0.045;
+          arr[i3 + 1] += Math.sin(t * 2 + sSeed[idx] * 9) * 0.004;
+          if (arr[i3] > hp.x + RUN) {
+            arr[i3] = hp.x;
+            arr[i3 + 1] = hp.y + (Math.random() - 0.5) * 0.4;
+            arr[i3 + 2] = hp.z + (Math.random() - 0.5) * 0.4;
+          }
+        }
+      });
+      sGeo.attributes.position.needsUpdate = true;
     }
   };
 }
@@ -288,6 +341,11 @@ function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
   const halo = makeSoftGlow(0xdb7a2e, 14, textures);
   halo.position.set(0.4, 0.1, -8);
   scene.add(halo);
+  // Wide, low horizon glow band = atmospheric depth behind the plant.
+  const horizon = makeSoftGlow(0xc46a26, 1, textures);
+  horizon.scale.set(30, 6, 1);
+  horizon.position.set(0, -1.7, -9);
+  scene.add(horizon);
 
   // Structures share the wireframe language of the globe, in a cool mint-teal line.
   const structMat = new THREE.LineBasicMaterial({ color: 0x2fbf9a, transparent: true, opacity: 0.55 });
@@ -373,6 +431,7 @@ function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
   return {
     cam: { pos: [0, 1.5, 9.4], look: [0, 1.0, -2] },
     bloom: { strength: 0.75, radius: 0.78, threshold: 0.34 },
+    motion: { orbit: 0.2, dolly: 0.7, rise: 0.2 },
     update(t) {
       halo.scale.setScalar(14 + Math.sin(t * 0.5) * 0.5);
       beacons.forEach(o => {
@@ -459,6 +518,7 @@ function buildNetwork(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
   return {
     cam: { pos: [0, 0.25, 6.9], look: [0, 0, 0] },
     bloom: { strength: 0.75, radius: 0.75, threshold: 0.42 },
+    motion: { orbit: 0.3, dolly: 0.4, rise: 0.12 },
     update(t) {
       root.rotation.y = t * 0.1;
       root.rotation.x = Math.sin(t * 0.07) * 0.12;
@@ -535,6 +595,7 @@ function buildSolar(scene: THREE.Scene, textures: THREE.Texture[], dir: THREE.Di
   return {
     cam: { pos: [0, 0.4, 9], look: [-0.4, 0, -1] },
     bloom: { strength: 0.55, radius: 0.75, threshold: 0.62 },
+    motion: { orbit: 0.18, dolly: 0.6, rise: 0.16 },
     update(t) {
       // Each panel tumbles on its own axes and drifts only radially (out/in along
       // its own spoke), so it never crosses a neighbour or the sun.
@@ -604,6 +665,7 @@ function buildParticles(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
   return {
     cam: { pos: [0, 0, 7.4], look: [0, 0.1, 0] },
     bloom: { strength: 0.85, radius: 0.85, threshold: 0.3 },
+    motion: { orbit: 0.24, dolly: 0.5, rise: 0.14 },
     update(t) {
       rise(mint, 0.006);
       rise(gold, 0.004);
@@ -698,9 +760,28 @@ export default function Scene3D({ type, active }: { type: Scene3DType; active: b
     // A touch livelier to match the brisker 5 s scene cadence; reduced motion
     // stays calmer but scaled up proportionally so it never feels stalled.
     const speed = reduced ? 0.7 : 1.25;
+
+    // Cinematic camera: a slow orbit + dolly + rise around the look target gives
+    // real parallax and depth (near objects sweep past far ones). Reduced motion
+    // holds the camera still. Tuned per scene via controller.motion.
+    const rel = new THREE.Vector3(cx, cy, cz).sub(look);
+    const baseAzim = Math.atan2(rel.x, rel.z);
+    const baseHoriz = Math.hypot(rel.x, rel.z);
+    const m = controller.motion ?? {};
+    const orbit = reduced ? 0 : (m.orbit ?? 0.16);
+    const dolly = reduced ? 0 : (m.dolly ?? 0.5);
+    const rise = reduced ? 0 : (m.rise ?? 0.18);
+    const mSpeed = m.speed ?? 1;
     const renderOnce = (t: number) => {
       controller.update(t * speed);
-      if (!reduced) camera.position.x = cx + Math.sin(t * 0.06) * 0.35;
+      const tt = t * mSpeed;
+      const azim = baseAzim + Math.sin(tt * 0.05) * orbit;
+      const radius = baseHoriz + Math.sin(tt * 0.08) * dolly;
+      camera.position.set(
+        look.x + Math.sin(azim) * radius,
+        cy + Math.sin(tt * 0.045) * rise,
+        look.z + Math.cos(azim) * radius
+      );
       camera.lookAt(look);
       composer.render();
     };
