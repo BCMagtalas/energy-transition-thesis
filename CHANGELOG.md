@@ -1,5 +1,8 @@
 # Changelog
 
+## v5.7.3 — Coal boiler back into the wireframe language
+- v5.7.2 over-corrected: the opaque boiler read as a flat black cut-out that clashed with the glowing see-through towers/stacks. Rendered it as glowing wireframe again — with a faint translucent teal fill for a hint of volume — so it matches the rest of the scene while its now-clean stepped geometry (hall + block + vent) still reads as a building. Also made the plumes a touch fuller (denser, slightly larger/brighter) so they read as smoke columns rather than thin dotted lines.
+
 ## v5.7.2 — Coal scene: solid boiler, filled centre, pollution plumes
 - Critical-review fixes. (1) Boiler house rebuilt as one coherent, **opaque** stepped structure (main hall + boiler block + vent stack) so it reads as a solid building — the previous two see-through boxes clipped through each other and the grid. (2) A central plume now vents from the boiler so the middle of the frame isn't dead (plumes span left/centre/right). (3) The two cooling towers are spaced apart so both silhouettes read instead of fusing. (4) Smokestacks widened, spaced apart, and the red hazard bands restored (not just beacon dots). (5) Emissions retuned from sparse gold glitter to dense, soft, columnar, sooty-amber plumes that widen as they climb — reads as pollution, not fireworks. Also tightened the camera orbit (0.2→0.13) to keep the composition centred.
 

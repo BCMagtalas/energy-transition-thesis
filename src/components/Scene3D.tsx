@@ -351,8 +351,9 @@ function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
   // Structures share the wireframe language of the globe, in a cool mint-teal line.
   const structMat = new THREE.LineBasicMaterial({ color: 0x2fbf9a, transparent: true, opacity: 0.55 });
   const hazardMat = new THREE.LineBasicMaterial({ color: 0xff5a44, transparent: true, opacity: 0.9 });
-  // Opaque dark mass so the boiler house reads as a solid volume, not a glass crate.
-  const massMat = new THREE.MeshBasicMaterial({ color: 0x05160f });
+  // Faint translucent teal fill — a hint of volume that keeps the boiler in the same
+  // glowing-wireframe language as the towers/stacks (not an opaque black slab).
+  const massMat = new THREE.MeshBasicMaterial({ color: 0x0e4130, transparent: true, opacity: 0.28, side: THREE.DoubleSide, depthWrite: false });
 
   type Emitter = { pos: [number, number, number]; r: number; rate: number };
   const emitters: Emitter[] = [];
@@ -362,7 +363,7 @@ function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
     const m = new THREE.LineSegments(new THREE.EdgesGeometry(coolingTowerGeo(s)), structMat);
     m.position.set(x, -2, z);
     scene.add(m);
-    emitters.push({ pos: [x, -2 + 2.65 * s, z], r: 0.3 * s, rate: 0.012 });
+    emitters.push({ pos: [x, -2 + 2.65 * s, z], r: 0.36 * s, rate: 0.012 });
   };
   coolTower(-2.7, -1.6, 1.05);
   coolTower(-4.7, -3.5, 0.85);
@@ -384,7 +385,7 @@ function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
   bldg.add(vent, ventEdge);
   scene.add(bldg);
   // Central plume from the vent so the middle of the frame isn't dead.
-  emitters.push({ pos: [0.5 - 0.4, -2 + 3.1, -1.4], r: 0.16, rate: 0.014 });
+  emitters.push({ pos: [0.5 - 0.4, -2 + 3.1, -1.4], r: 0.2, rate: 0.014 });
 
   // Wireframe smokestacks — wider, spaced apart, with red hazard bands + blinking beacons.
   const beacons: { mat: THREE.MeshBasicMaterial; glow: THREE.Sprite; phase: number }[] = [];
@@ -409,11 +410,11 @@ function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
     bGlow.position.set(x, topY, z);
     scene.add(beacon, bGlow);
     beacons.push({ mat: bMat, glow: bGlow, phase: i * 2.1 });
-    emitters.push({ pos: [x, topY, z], r: 0.1 * s, rate: 0.016 });
+    emitters.push({ pos: [x, topY, z], r: 0.13 * s, rate: 0.016 });
   });
 
   // Rising carbon plumes — dense, soft, columnar, sooty amber (pollution, not sparks).
-  const per = 120;
+  const per = 150;
   const count = emitters.length * per;
   const RISE = 3.8;
   const geo = new THREE.BufferGeometry();
@@ -437,8 +438,8 @@ function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
   geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
   geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
   const moteMat = new THREE.PointsMaterial({
-    size: 0.09, map: dotTexture(textures), vertexColors: true, transparent: true,
-    opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false
+    size: 0.1, map: dotTexture(textures), vertexColors: true, transparent: true,
+    opacity: 0.62, blending: THREE.AdditiveBlending, depthWrite: false
   });
   scene.add(new THREE.Points(geo, moteMat));
 
