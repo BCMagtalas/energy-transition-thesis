@@ -355,22 +355,40 @@ function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
   // glowing-wireframe language as the towers/stacks (not an opaque black slab).
   const massMat = new THREE.MeshBasicMaterial({ color: 0x0e4130, transparent: true, opacity: 0.28, side: THREE.DoubleSide, depthWrite: false });
 
+  const padMat = new THREE.MeshBasicMaterial({ color: 0x0e4130, transparent: true, opacity: 0.13, side: THREE.DoubleSide, depthWrite: false });
+
   type Emitter = { pos: [number, number, number]; r: number; rate: number };
   const emitters: Emitter[] = [];
 
-  // Wireframe hyperboloid cooling towers — spaced so both silhouettes read separately.
+  // Shared foundation pad — one footprint under the whole complex ties it to a single site.
+  const padGeo = new THREE.BoxGeometry(8.6, 0.22, 5.0);
+  const pad = new THREE.Mesh(padGeo, padMat); pad.position.set(-0.7, -2.1, -1.2);
+  const padEdge = new THREE.LineSegments(new THREE.EdgesGeometry(padGeo), structMat); padEdge.position.copy(pad.position);
+  scene.add(pad, padEdge);
+
+  // Connecting plumbing: a wireframe pipe between two points → one interconnected system.
+  const pipe = (a: THREE.Vector3, b: THREE.Vector3, r: number) => {
+    const d = b.clone().sub(a); const len = d.length();
+    const g = new THREE.CylinderGeometry(r, r, len, 7);
+    const e = new THREE.LineSegments(new THREE.EdgesGeometry(g), structMat);
+    e.position.copy(a).add(b).multiplyScalar(0.5);
+    e.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize());
+    scene.add(e);
+  };
+
+  // Wireframe hyperboloid cooling towers — clustered at the left of the complex.
   const coolTower = (x: number, z: number, s: number) => {
     const m = new THREE.LineSegments(new THREE.EdgesGeometry(coolingTowerGeo(s)), structMat);
     m.position.set(x, -2, z);
     scene.add(m);
     emitters.push({ pos: [x, -2 + 2.65 * s, z], r: 0.36 * s, rate: 0.012 });
   };
-  coolTower(-2.7, -1.6, 1.05);
-  coolTower(-4.7, -3.5, 0.85);
+  coolTower(-2.5, -2.0, 0.98);
+  coolTower(-3.6, -3.2, 0.8);
 
-  // Boiler house: one coherent, solid, stepped structure with a vent stack.
+  // Boiler house: coherent stepped structure with a vent stack — centre of the complex.
   const bldg = new THREE.Group();
-  bldg.position.set(0.5, -2, -1.4);
+  bldg.position.set(-0.2, -2, 0.4);
   const addBox = (w: number, h: number, d: number, x: number, yc: number) => {
     const g = new THREE.BoxGeometry(w, h, d);
     const mesh = new THREE.Mesh(g, massMat); mesh.position.set(x, yc, 0);
@@ -384,12 +402,11 @@ function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
   const ventEdge = new THREE.LineSegments(new THREE.EdgesGeometry(ventGeo), structMat); ventEdge.position.set(-0.4, 2.85, 0);
   bldg.add(vent, ventEdge);
   scene.add(bldg);
-  // Central plume from the vent so the middle of the frame isn't dead.
-  emitters.push({ pos: [0.5 - 0.4, -2 + 3.1, -1.4], r: 0.2, rate: 0.014 });
+  emitters.push({ pos: [-0.6, -2 + 3.1, 0.4], r: 0.2, rate: 0.014 });   // central vent plume
 
-  // Wireframe smokestacks — wider, spaced apart, with red hazard bands + blinking beacons.
+  // Wireframe smokestacks — clustered right beside the boiler, red bands + beacons.
   const beacons: { mat: THREE.MeshBasicMaterial; glow: THREE.Sprite; phase: number }[] = [];
-  ([[2.7, -1.5, 1.1], [4.0, -3.2, 0.92]] as [number, number, number][]).forEach(([x, z, s], i) => {
+  ([[1.5, -1.4, 0.95], [2.2, -2.5, 0.8]] as [number, number, number][]).forEach(([x, z, s], i) => {
     const H = 3.2 * s;
     const stGeo = new THREE.CylinderGeometry(0.17 * s, 0.24 * s, H, 10);
     const st = new THREE.LineSegments(new THREE.EdgesGeometry(stGeo), structMat);
@@ -412,6 +429,11 @@ function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
     beacons.push({ mat: bMat, glow: bGlow, phase: i * 2.1 });
     emitters.push({ pos: [x, topY, z], r: 0.13 * s, rate: 0.016 });
   });
+
+  // Plumbing weaving between the units so it reads as one interconnected facility.
+  pipe(new THREE.Vector3(0.75, -1.4, 0.2), new THREE.Vector3(1.5, -1.4, -1.2), 0.12);   // boiler → stack (flue duct)
+  pipe(new THREE.Vector3(-1.1, -1.5, 0.3), new THREE.Vector3(-2.4, -1.6, -1.9), 0.1);   // boiler → cooling towers
+  pipe(new THREE.Vector3(-2.6, -1.6, -2.0), new THREE.Vector3(-3.6, -1.7, -3.1), 0.08); // tower → tower link
 
   // Rising carbon plumes — dense, soft, columnar, sooty amber (pollution, not sparks).
   const per = 150;

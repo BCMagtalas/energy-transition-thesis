@@ -1,5 +1,8 @@
 # Changelog
 
+## v5.7.4 — Coal plant reads as one facility, not scattered structures
+- The cooling towers, boiler house, and stacks were evenly spread across the frame with big gaps and nothing linking them, so they read as three separate objects. Unified them into a single interconnected complex: clustered the structures tightly (towers left, boiler centre, stacks right beside the boiler), sat them all on a **shared foundation pad** whose footprint outlines the plant site, and ran **connecting pipes** between the boiler↔stacks (flue duct), boiler↔cooling towers, and tower↔tower. Now reads as one power plant.
+
 ## v5.7.3 — Coal boiler back into the wireframe language
 - v5.7.2 over-corrected: the opaque boiler read as a flat black cut-out that clashed with the glowing see-through towers/stacks. Rendered it as glowing wireframe again — with a faint translucent teal fill for a hint of volume — so it matches the rest of the scene while its now-clean stepped geometry (hall + block + vent) still reads as a building. Also made the plumes a touch fuller (denser, slightly larger/brighter) so they read as smoke columns rather than thin dotted lines.
 
