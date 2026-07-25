@@ -236,10 +236,11 @@ function buildWind(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
 
   const hubs: { hub: THREE.Group; rate: number }[] = [];
   const hubPos: THREE.Vector3[] = [];
-  // A clearer near→far farm; the tall near turbine sits left of the caption column.
+  // Balanced spread — left / centre / right anchors up front, so the frame never
+  // has a hollow middle, plus receding pairs for depth.
   const layout: [number, number, number][] = [
-    [-3.7, 0.4, 1.12], [2.7, -0.6, 0.95], [-6.0, -2.9, 0.72],
-    [5.6, -3.2, 0.66], [1.2, -5.0, 0.55], [-1.6, -7.2, 0.45]
+    [-3.0, 0.2, 1.05], [2.9, -0.4, 1.0], [-0.5, -2.3, 0.76],
+    [-5.6, -3.0, 0.64], [5.2, -3.3, 0.6], [2.2, -5.6, 0.5]
   ];
   layout.forEach(([x, z, sc], i) => {
     const { turbine, hub } = wireTurbine(sc, bladeFill, bladeEdge, lineMat, fillMat, podMat, nodeMat, textures);
@@ -297,7 +298,7 @@ function buildWind(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
   return {
     cam: { pos: [0, 1.1, 9], look: [0, 1.3, -3] },
     bloom: { strength: 0.8, radius: 0.8, threshold: 0.35 },
-    motion: { orbit: 0.2, dolly: 0.7, rise: 0.22 },
+    motion: { orbit: 0.12, dolly: 0.5, rise: 0.18 },
     update(t) {
       // Power-up: blades spool from rest to full speed over ~1.3 s (analytic integral
       // of a linear ramp, so the angle is continuous and always completes).

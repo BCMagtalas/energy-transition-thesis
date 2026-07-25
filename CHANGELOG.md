@@ -1,5 +1,8 @@
 # Changelog
 
+## v5.7.1 — Rebalanced the wind farm composition
+- The turbines were bunching to the left/right edges with a hollow upper-centre, worsened by the new camera orbit swinging the farm sideways at its extremes. Rebalanced the layout with left/centre/right anchors up front (added a mid turbine to fill the middle) and tightened the wind camera orbit (0.2→0.12) and dolly (0.7→0.5) so the farm stays centred across the whole move. Verified balanced at multiple orbit phases.
+
 ## v5.7.0 — Cinematic pass on all five hero scenes
 - The heroes were static tableaux that only rotated. Added real motion & depth. (1) Cinematic camera: a slow continuous orbit + dolly + vertical rise around each scene's look-target (tuned per scene via a new `motion` field), so near objects sweep past far ones — genuine parallax and depth. Reduced-motion holds the camera still. (2) Wind: gold energy-flow streams now spin off each turbine hub and flow downwind, tying the particulate to the turbines ("generation") instead of drifting independently; the blades also power up — spooling from rest to full speed over ~1.3 s on each appearance (analytic ramp, always completes). (3) Atmosphere: a wide low horizon-glow band adds depth behind the wind and coal scenes. (4) Nudged the tall near turbine left of the caption column so it no longer runs behind the text.
 - Verified in-browser: camera parallax confirmed across frames, energy streams read, globe/particles gain a dynamic turntable presence; production build + tsc clean, 12 audit checks pass.
