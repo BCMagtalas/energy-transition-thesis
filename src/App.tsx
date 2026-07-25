@@ -321,7 +321,7 @@ function Poster({ onStart, onExplore }: { onStart: () => void; onExplore: () => 
           <Suspense fallback={<div className="scene3d-fallback" aria-hidden="true" />}>
             <Scene3D key={scene} type={current.type} active />
           </Suspense>
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" aria-hidden="true" />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/25 to-transparent" aria-hidden="true" />
           <AnimatePresence mode="wait">
             <motion.div
               key={`${scene}-${current.label}`}
