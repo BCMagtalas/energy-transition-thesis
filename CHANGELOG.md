@@ -1,5 +1,9 @@
 # Changelog
 
+## v5.4.2 — Bright scenes: substantial render-quality upgrade
+- The bright wind/coal scenes looked flat and muddy next to the bloom-lit dark scenes. Root causes fixed: heavy fog desaturating everything (34–82 → light 46–120, far-horizon only); flat fill-only lighting (added a directional key light + lowered hemisphere fill, so white structures now get real form and gradients); blurry cloud "blobs" (replaced with a few small, crisp, high, subtle clouds); low contrast (cleaner saturated sky, crisper emerald grid); dead-matte materials (turbines and plant now have light sheen/metalness so the key light sculpts them).
+- Coal decommission no longer leaves a bare grid: permanent foundation pads remain where each structure stood (reads as a cleared/decommissioned site), and the teardown is delayed so the operating plant leads the shot. Verified the wind scene renders crisp with real form; coal shares the same environment/materials. Build + 12 audit checks pass.
+
 ## v5.4.1 — Bright scenes: faster sequences, higher contrast
 - Root cause of "too slow / not visible": the site inherits the OS Reduce-Motion setting, which ran every scene at 16% — fine for loops but leaving the timed wind-assembly and coal-decommission sequences permanently half-finished. Raised the reduced-motion factor 0.16 → 0.55 and compressed both sequences (wind assembly ~2.7 s, coal decommission ~3.6 s) so they complete within the display window at any speed.
 - Visibility: turbines and plant structures were near-white on a pale sky; retoned to mid-grey so they read clearly, and moved the coal-plant camera closer / lower so the plant fills the frame. Smoke made denser before it fades. Solar rechecked — unchanged, reads well; now tumbles more visibly at the higher reduced-motion speed. Verified: full-speed assembly and decommission complete on screen, one live canvas, zero console errors, no overflow; build + 12 audit checks pass.
