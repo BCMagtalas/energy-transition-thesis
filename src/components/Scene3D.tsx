@@ -690,10 +690,9 @@ export default function Scene3D({ type, active }: { type: Scene3DType; active: b
 
     let raf = 0;
     const start = performance.now();
-    // Reduced motion runs slower and without camera sway, but not so slow that
-    // the timed assembly/decommission sequences can't finish in the display
-    // window (0.16 left them permanently half-built).
-    const speed = reduced ? 0.55 : 1;
+    // A touch livelier to match the brisker 5 s scene cadence; reduced motion
+    // stays calmer but scaled up proportionally so it never feels stalled.
+    const speed = reduced ? 0.7 : 1.25;
     const renderOnce = (t: number) => {
       controller.update(t * speed);
       if (!reduced) camera.position.x = cx + Math.sin(t * 0.06) * 0.35;

@@ -271,8 +271,8 @@ function Poster({ onStart, onExplore }: { onStart: () => void; onExplore: () => 
     if (paused) return;
     // Depending on `scene` restarts the countdown whenever a dot is clicked,
     // so a manual selection always gets its full display time.
-    // 7 s ≈ caption reading time for slower readers (12–16 words at ~150 wpm) plus a beat.
-    const id = window.setInterval(() => setScene(v => (v + 1) % scenes.length), 7000);
+    // 5 s ≈ caption reading time (12–16 words at ~150 wpm) at a brisker cadence.
+    const id = window.setInterval(() => setScene(v => (v + 1) % scenes.length), 5000);
     return () => window.clearInterval(id);
   }, [scenes.length, paused, scene]);
   const current = scenes[scene];
@@ -327,8 +327,8 @@ function Poster({ onStart, onExplore }: { onStart: () => void; onExplore: () => 
               key={`${scene}-${current.label}`}
               initial={{ opacity: 0, transform: 'translateY(14px)' }}
               animate={{ opacity: 1, transform: 'translateY(0px)' }}
-              exit={{ opacity: 0, transform: 'translateY(-8px)', transition: { duration: 0.18, ease: easeOutStrong } }}
-              transition={{ duration: 0.3, ease: easeOutStrong }}
+              exit={{ opacity: 0, transform: 'translateY(-8px)', transition: { duration: 0.14, ease: easeOutStrong } }}
+              transition={{ duration: 0.24, ease: easeOutStrong }}
               className="absolute inset-x-6 bottom-16 text-white"
             >
               <div className="mb-2 flex items-center gap-3">
