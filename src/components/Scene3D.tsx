@@ -102,6 +102,32 @@ function makeGlow(color: number, scale: number, textures: THREE.Texture[]): THRE
   return s;
 }
 
+/** Core-less, wide-falloff glow for big background halos — reads as ambient light, not a disc. */
+function softGlowTexture(textures: THREE.Texture[]): THREE.CanvasTexture {
+  const c = document.createElement('canvas');
+  c.width = c.height = 256;
+  const g = c.getContext('2d')!;
+  const grad = g.createRadialGradient(128, 128, 0, 128, 128, 128);
+  grad.addColorStop(0, 'rgba(255,255,255,0.40)');
+  grad.addColorStop(0.35, 'rgba(255,255,255,0.15)');
+  grad.addColorStop(0.7, 'rgba(255,255,255,0.04)');
+  grad.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 256, 256);
+  const t = new THREE.CanvasTexture(c);
+  textures.push(t);
+  return t;
+}
+
+function makeSoftGlow(color: number, scale: number, textures: THREE.Texture[]): THREE.Sprite {
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: softGlowTexture(textures), color, transparent: true,
+    blending: THREE.AdditiveBlending, depthWrite: false
+  }));
+  s.scale.setScalar(scale);
+  return s;
+}
+
 /* ---------- shared dark "digital night" stage (matches scenes 03–05) ---------- */
 function darkStage(
   scene: THREE.Scene,
@@ -129,48 +155,44 @@ function darkStage(
   scene.add(floor);
 }
 
-/** Tapered, twisted airfoil blade (root at y=0, tip at y=+L) for realistic rotors. */
-function bladeGeometry(): THREE.ExtrudeGeometry {
-  const L = 1.65;
-  const shape = new THREE.Shape();
-  shape.moveTo(-0.07, 0);                       // root · leading edge
-  shape.lineTo(0.10, 0);                        // root · trailing edge (wider chord)
-  shape.quadraticCurveTo(0.055, L * 0.5, 0.014, L); // trailing edge sweeps to a fine tip
-  shape.quadraticCurveTo(-0.05, L * 0.5, -0.07, 0); // leading edge back to root
-  shape.closePath();
-  const geo = new THREE.ExtrudeGeometry(shape, {
-    depth: 0.03, bevelEnabled: true, bevelThickness: 0.012, bevelSize: 0.012, bevelSegments: 1, steps: 1
-  });
-  geo.translate(0, 0, -0.021);
-  return geo;
+/** Flat tapered blade outline (root at y=0, tip at y=+L) — filled as a glowing ribbon. */
+function bladeShape(): THREE.Shape {
+  const L = 1.7;
+  const s = new THREE.Shape();
+  s.moveTo(-0.035, 0);                        // root · leading edge
+  s.lineTo(0.115, 0);                         // root · trailing edge (visible chord)
+  s.quadraticCurveTo(0.06, L * 0.55, 0.012, L); // trailing edge sweeps to a fine tip
+  s.quadraticCurveTo(-0.05, L * 0.55, -0.035, 0); // leading edge back to root
+  s.closePath();
+  return s;
 }
 
-/** Wireframe turbine: glowing edge-lines + a bright hub node, echoing the globe's wire+nodes. */
+/** Wireframe turbine: wire tower, solid nacelle pod, bright hub node, glowing ribbon blades. */
 function wireTurbine(
-  s: number, bladeEdges: THREE.BufferGeometry,
-  lineMat: THREE.Material, nodeMat: THREE.Material, textures: THREE.Texture[]
+  s: number, bladeFill: THREE.BufferGeometry, bladeEdge: THREE.BufferGeometry,
+  lineMat: THREE.Material, fillMat: THREE.Material, podMat: THREE.Material,
+  nodeMat: THREE.Material, textures: THREE.Texture[]
 ): { turbine: THREE.Group; hub: THREE.Group } {
   const turbine = new THREE.Group();
   const h = 3.4 * s;
-  const tower = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.CylinderGeometry(0.05 * s, 0.12 * s, h, 7)), lineMat);
+  const tower = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.CylinderGeometry(0.045 * s, 0.11 * s, h, 6)), lineMat);
   tower.position.y = h / 2;
-  const nacelle = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(0.34 * s, 0.2 * s, 0.2 * s)), lineMat);
-  nacelle.position.set(0, h, -0.02 * s);
+  // Solid little pod (not a wire crate) so the hub reads as a nacelle with mass.
+  const pod = new THREE.Mesh(new THREE.BoxGeometry(0.3 * s, 0.16 * s, 0.16 * s), podMat);
+  pod.position.set(0, h, -0.03 * s);
   const hub = new THREE.Group();
-  hub.position.set(0, h, 0.14 * s);
-  const node = new THREE.Mesh(new THREE.SphereGeometry(0.07 * s, 10, 10), nodeMat);
-  hub.add(node, makeGlow(MINT, 0.75 * s, textures));
+  hub.position.set(0, h, 0.12 * s);
+  const node = new THREE.Mesh(new THREE.SphereGeometry(0.05 * s, 10, 10), nodeMat);
+  hub.add(node, makeGlow(MINT, 0.4 * s, textures));
   for (let b = 0; b < 3; b++) {
-    const blade = new THREE.LineSegments(bladeEdges, lineMat);
-    blade.scale.setScalar(s);
-    const tip = makeGlow(GOLD, 0.5 * s, textures);
-    tip.position.set(0, 1.62 * s, 0);          // luminous mote at each blade tip
+    const fill = new THREE.Mesh(bladeFill, fillMat); fill.scale.setScalar(s);
+    const edge = new THREE.LineSegments(bladeEdge, lineMat); edge.scale.setScalar(s);
     const hold = new THREE.Group();
     hold.rotation.z = (b * Math.PI * 2) / 3;
-    hold.add(blade, tip);
+    hold.add(fill, edge);
     hub.add(hold);
   }
-  turbine.add(tower, nacelle, hub);
+  turbine.add(tower, pod, hub);
   return { turbine, hub };
 }
 
@@ -193,26 +215,30 @@ function coolingTowerGeo(s: number): THREE.LatheGeometry {
 function buildWind(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
   darkStage(scene, textures, [[0, '#02140e'], [0.6, '#083626'], [1, '#0c4433']], 0x083626, 0x2f9e82);
 
-  // Central mint halo the wireframe structures read against (echoes the globe/particle heroes).
-  const halo = makeGlow(MINT, 8, textures);
-  halo.position.set(1.4, 1.3, -6);
+  // Soft, off-centre mint halo — ambient bloom the structures read against, not a disc.
+  const halo = makeSoftGlow(MINT, 12, textures);
+  halo.position.set(3.2, 1.5, -6);
   scene.add(halo);
 
-  const lineMat = new THREE.LineBasicMaterial({ color: MINT, transparent: true, opacity: 0.6 });
+  const lineMat = new THREE.LineBasicMaterial({ color: MINT, transparent: true, opacity: 0.72 });
+  const fillMat = new THREE.MeshBasicMaterial({ color: MINT, transparent: true, opacity: 0.18, side: THREE.DoubleSide, depthWrite: false });
+  const podMat = new THREE.MeshBasicMaterial({ color: 0x0a3728 });
   const nodeMat = new THREE.MeshBasicMaterial({ color: 0xbdf5dc });
-  const bladeEdges = new THREE.EdgesGeometry(bladeGeometry());
+  const bladeFill = new THREE.ShapeGeometry(bladeShape());
+  const bladeEdge = new THREE.EdgesGeometry(bladeFill);
 
   const hubs: { hub: THREE.Group; rate: number }[] = [];
+  // A clearer near→far farm: two near turbines, then receding pairs — no hard edge-crop.
   const layout: [number, number, number][] = [
-    [-3.4, 1.0, 1.25], [1.9, -0.2, 1.05], [4.9, -2.6, 0.85],
-    [-6.2, -3.2, 0.7], [-0.6, -5.6, 0.6], [6.9, -6.6, 0.5]
+    [-2.6, 0.4, 1.12], [2.7, -0.6, 0.95], [-5.4, -2.9, 0.72],
+    [5.6, -3.2, 0.66], [0.5, -5.0, 0.55], [-1.9, -7.0, 0.45]
   ];
   layout.forEach(([x, z, sc], i) => {
-    const { turbine, hub } = wireTurbine(sc, bladeEdges, lineMat, nodeMat, textures);
+    const { turbine, hub } = wireTurbine(sc, bladeFill, bladeEdge, lineMat, fillMat, podMat, nodeMat, textures);
     turbine.position.set(x, -2, z);
-    turbine.rotation.y = -0.28 + (i % 3) * 0.22;
+    turbine.rotation.y = -0.22 + (i % 3) * 0.2;
     scene.add(turbine);
-    hubs.push({ hub, rate: 0.5 + (i % 3) * 0.22 });
+    hubs.push({ hub, rate: 0.5 + (i % 3) * 0.2 });
   });
 
   // Drifting "wind" motes (mint + gold) streaming left-to-right — the particle/traveler motif.
@@ -240,7 +266,7 @@ function buildWind(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
     bloom: { strength: 0.8, radius: 0.8, threshold: 0.35 },
     update(t) {
       hubs.forEach(o => { o.hub.rotation.z = -t * o.rate; });
-      halo.scale.setScalar(8 + Math.sin(t * 0.6) * 0.4);
+      halo.scale.setScalar(12 + Math.sin(t * 0.6) * 0.5);
       fields.forEach(f => {
         const arr = f.geo.attributes.position.array as Float32Array;
         for (let i = 0; i < f.n; i++) {
@@ -258,13 +284,15 @@ function buildWind(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
 function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
   darkStage(scene, textures, [[0, '#0a0b0e'], [0.55, '#20140f'], [1, '#38210f']], 0x20140f, 0x6f4a2a);
 
-  // Warm carbon halo low behind the plant (the counterpart to the mint halos elsewhere).
-  const halo = makeGlow(0xdb7a2e, 8.5, textures);
-  halo.position.set(0, -0.3, -8);
+  // Soft warm carbon halo — diffuse ambient bloom filling the mid-ground, not a hard dome.
+  const halo = makeSoftGlow(0xdb7a2e, 14, textures);
+  halo.position.set(0.4, 0.1, -8);
   scene.add(halo);
 
   // Structures share the wireframe language of the globe, in a cool mint-teal line.
-  const structMat = new THREE.LineBasicMaterial({ color: 0x2fbf9a, transparent: true, opacity: 0.5 });
+  const structMat = new THREE.LineBasicMaterial({ color: 0x2fbf9a, transparent: true, opacity: 0.55 });
+  // Dark filled mass so buildings read as solid volumes rather than empty crates.
+  const massMat = new THREE.MeshBasicMaterial({ color: 0x08251c, transparent: true, opacity: 0.6, side: THREE.DoubleSide, depthWrite: false });
 
   type Emitter = { pos: [number, number, number]; r: number; rate: number };
   const emitters: Emitter[] = [];
@@ -279,40 +307,38 @@ function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
   coolTower(-2.2, -1.7, 1.05);
   coolTower(-3.7, -3.6, 0.82);
 
-  // Wireframe boiler house (stepped block + service duct).
+  // Boiler house: solid dark mass + bright edges + a few structural ribs on the front face.
   const bldg = new THREE.Group();
-  bldg.position.set(1.0, -2, -1.2);
-  const base = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1.9, 1.6, 1.4)), structMat);
-  base.position.y = 0.8;
-  const upper = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1.15, 0.85, 1.0)), structMat);
-  upper.position.set(-0.25, 1.85, 0);
-  bldg.add(base, upper);
+  bldg.position.set(0.7, -2, -1.3);
+  const baseGeo = new THREE.BoxGeometry(1.9, 1.6, 1.4);
+  const base = new THREE.Mesh(baseGeo, massMat); base.position.y = 0.8;
+  const baseEdge = new THREE.LineSegments(new THREE.EdgesGeometry(baseGeo), structMat); baseEdge.position.y = 0.8;
+  const upGeo = new THREE.BoxGeometry(1.15, 0.85, 1.0);
+  const upper = new THREE.Mesh(upGeo, massMat); upper.position.set(-0.25, 1.85, 0);
+  const upEdge = new THREE.LineSegments(new THREE.EdgesGeometry(upGeo), structMat); upEdge.position.set(-0.25, 1.85, 0);
+  bldg.add(base, baseEdge, upper, upEdge);
+  const ribGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, -0.75, 0), new THREE.Vector3(0, 0.75, 0)]);
+  for (let r = -1; r <= 1; r++) {
+    const rib = new THREE.Line(ribGeo, structMat);
+    rib.position.set(r * 0.5, 0.8, 0.7);
+    bldg.add(rib);
+  }
   scene.add(bldg);
 
-  // Wireframe smokestacks topped with blinking red hazard nodes + expanding pulse rings.
+  // Wireframe smokestacks topped with small blinking red hazard nodes.
   const beacons: { mat: THREE.MeshBasicMaterial; glow: THREE.Sprite; phase: number }[] = [];
-  const rings: { mesh: THREE.Mesh; mat: THREE.MeshBasicMaterial; offset: number }[] = [];
-  ([[2.6, -1.4, 1.1], [3.5, -3.2, 0.9]] as [number, number, number][]).forEach(([x, z, s], i) => {
+  ([[2.5, -1.6, 1.05], [3.4, -3.3, 0.9]] as [number, number, number][]).forEach(([x, z, s], i) => {
     const st = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.CylinderGeometry(0.14 * s, 0.2 * s, 3.2 * s, 8)), structMat);
     st.position.set(x, -2 + 1.6 * s, z);
     scene.add(st);
     const topY = -2 + 3.2 * s;
     const bMat = new THREE.MeshBasicMaterial({ color: 0xff5a44, transparent: true });
-    const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.07 * s, 10, 10), bMat);
+    const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.055 * s, 10, 10), bMat);
     beacon.position.set(x, topY, z);
-    const bGlow = makeGlow(0xff5a44, 0.7, textures);
+    const bGlow = makeGlow(0xff5a44, 0.5, textures);
     bGlow.position.set(x, topY, z);
     scene.add(beacon, bGlow);
     beacons.push({ mat: bMat, glow: bGlow, phase: i * 2.1 });
-    // Two expanding carbon-pulse rings per stack (the ring motif from the net-zero scene).
-    for (let r = 0; r < 2; r++) {
-      const rMat = new THREE.MeshBasicMaterial({ color: 0xe0913a, transparent: true, opacity: 0.4, side: THREE.DoubleSide });
-      const mesh = new THREE.Mesh(new THREE.TorusGeometry(1, 0.012, 8, 48), rMat);
-      mesh.rotation.x = Math.PI / 2;
-      mesh.position.set(x, topY, z);
-      scene.add(mesh);
-      rings.push({ mesh, mat: rMat, offset: (i * 2 + r) / 4 });
-    }
     emitters.push({ pos: [x, topY, z], r: 0.12 * s, rate: 0.016 });
   });
 
@@ -348,16 +374,11 @@ function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
     cam: { pos: [0, 1.5, 9.4], look: [0, 1.0, -2] },
     bloom: { strength: 0.75, radius: 0.78, threshold: 0.34 },
     update(t) {
-      halo.scale.setScalar(8.5 + Math.sin(t * 0.5) * 0.4);
+      halo.scale.setScalar(14 + Math.sin(t * 0.5) * 0.5);
       beacons.forEach(o => {
         const v = 0.28 + 0.72 * Math.pow(Math.abs(Math.sin(t * 1.6 + o.phase)), 4);
         o.mat.opacity = v;
         (o.glow.material as THREE.SpriteMaterial).opacity = v;
-      });
-      rings.forEach(({ mesh, mat, offset }) => {
-        const u = (t * 0.25 + offset) % 1;
-        mesh.scale.set(0.2 + u * 1.6, 0.2 + u * 1.6, 1);
-        mat.opacity = 0.45 * (1 - u);
       });
       const arr = geo.attributes.position.array as Float32Array;
       for (let ei = 0; ei < emitters.length; ei++) {

@@ -1,5 +1,9 @@
 # Changelog
 
+## v5.6.1 — Wind & coal: craft pass on the abstract scenes
+- Acting on a critical review of v5.6.0. Five fixes: (1) turbines no longer read as spiders — blades are now filled tapered ribbons (ShapeGeometry) with bright edge outlines instead of single lines from a glowing node, and the hub node is smaller with a solid nacelle pod; the firefly-ish gold blade-tip orbs are gone. (2) Removed the coal "Saturn ring" pulses that read as a ringed planet/UFO. (3) Both background halos are now a core-less soft glow (new `makeSoftGlow`) offset from centre, so they read as ambient light, not a flat disc. (4) The boiler house is now a solid dark mass with bright edges + structural ribs instead of two empty wireframe crates. (5) Tighter compositions — a clearer near→far wind farm with no hard edge-crop, balanced coal layout.
+- Verified in-browser at full opacity: turbines read unmistakably as turbines, coal reads as a wireframe plant venting rising carbon with no ringed-planet artifact; production build + tsc clean, 12 audit checks pass.
+
 ## v5.6.0 — Wind & coal restyled to match the abstract hero set
 - Photoreal primitives were losing to the abstract heroes (globe, floating panels, rising particles) and clashing with them. Rebuilt 01/02 in the same visual language instead: glowing wireframe structures + luminous nodes/motes/rings, bloom-lit, so all five heroes now read as one deliberate set.
 - Wind (01): six turbines as glowing mint wireframe (edge-line towers/nacelles/airfoil blades) with bright hub **nodes** and gold blade-tip motes, spinning, over drifting mint+gold "wind" motes and a central mint halo — echoing the globe's wire+nodes and the particle scene's motes.
