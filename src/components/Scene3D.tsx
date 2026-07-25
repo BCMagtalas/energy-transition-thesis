@@ -165,8 +165,9 @@ const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 function buildWind(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
   brightEnv(scene, textures);
 
-  const white = new THREE.MeshStandardMaterial({ color: 0xf4f8f6, roughness: 0.6, metalness: 0.05 });
-  const bladeMat = new THREE.MeshStandardMaterial({ color: 0xfbfdfc, roughness: 0.55 });
+  // Mid-tone grey (not white) so the turbines read clearly against the pale sky.
+  const white = new THREE.MeshStandardMaterial({ color: 0xbccac5, roughness: 0.6, metalness: 0.05 });
+  const bladeMat = new THREE.MeshStandardMaterial({ color: 0xcdd8d3, roughness: 0.55 });
 
   // Background wind farm, already assembled and turning.
   const bg: { hub: THREE.Group; rate: number }[] = [];
@@ -183,7 +184,7 @@ function buildWind(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
   const fg = new THREE.Group();
   fg.position.set(-1.1, -2, -3);
   scene.add(fg);
-  const foundation = new THREE.Mesh(new THREE.CylinderGeometry(0.55 * S, 0.65 * S, 0.2 * S, 28), new THREE.MeshStandardMaterial({ color: 0xdbe8e3, roughness: 0.9 }));
+  const foundation = new THREE.Mesh(new THREE.CylinderGeometry(0.55 * S, 0.65 * S, 0.2 * S, 28), new THREE.MeshStandardMaterial({ color: 0xaab8b3, roughness: 0.9 }));
   foundation.position.y = 0.1 * S;
   fg.add(foundation);
 
@@ -203,7 +204,7 @@ function buildWind(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
   nacelle.position.set(0, topY, 0.05);
   nacelle.visible = false;
   fg.add(nacelle);
-  const shellMat = new THREE.MeshStandardMaterial({ color: 0xf4f8f6, roughness: 0.6, transparent: true, opacity: 1 });
+  const shellMat = new THREE.MeshStandardMaterial({ color: 0xbccac5, roughness: 0.6, transparent: true, opacity: 1 });
   const shell = new THREE.Mesh(new THREE.BoxGeometry(0.42 * S, 0.22 * S, 0.24 * S), shellMat);
   const gearMat = new THREE.MeshStandardMaterial({ color: 0x86a0a6, metalness: 0.7, roughness: 0.4 });
   const gear = new THREE.Mesh(new THREE.TorusGeometry(0.07 * S, 0.022 * S, 6, 12), gearMat);
@@ -238,29 +239,31 @@ function buildWind(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
 
   const DROP = 4.5;
   const seg = (start: number, dur: number, t: number) => clamp01((t - start) / dur);
-  const nacStart = 0.4 + segCount * 0.55 + 0.2;
-  const solidStart = nacStart + 0.6;
-  const bladeStart = solidStart + 0.6;
-  const spinStart = bladeStart + 0.7;
+  // Compressed timeline — assembly completes ~2.7 s, so it finishes in-window
+  // even under reduced motion.
+  const nacStart = 0.3 + segCount * 0.35 + 0.15;
+  const solidStart = nacStart + 0.4;
+  const bladeStart = solidStart + 0.4;
+  const spinStart = bladeStart + 0.45;
 
   return {
     cam: { pos: [0, 1.5, 9], look: [-0.5, 1.1, -3] },
     bloom: { strength: 0.2, radius: 0.7, threshold: 0.92 },
     update(t) {
       bg.forEach(o => { o.hub.rotation.z = -t * o.rate; });
-      const guideOn = seg(0.2, 0.4, t) * (1 - seg(spinStart, 0.8, t));
+      const guideOn = seg(0.15, 0.3, t) * (1 - seg(spinStart, 0.6, t));
       guides.forEach(m => { m.opacity = 0.55 * guideOn; });
       segs.forEach(({ mesh, targetY, i }) => {
-        const p = seg(0.4 + i * 0.55, 0.5, t);
+        const p = seg(0.3 + i * 0.35, 0.35, t);
         if (p > 0) { mesh.visible = true; mesh.position.y = targetY + (1 - p) * DROP; }
       });
-      const np = seg(nacStart, 0.5, t);
+      const np = seg(nacStart, 0.35, t);
       if (np > 0) { nacelle.visible = true; nacelle.position.y = topY + (1 - np) * DROP; }
-      const solid = seg(solidStart, 0.5, t);
+      const solid = seg(solidStart, 0.35, t);
       shellMat.opacity = 0.3 + 0.7 * solid;
       gear.visible = shaft.visible = solid < 1;
       gear.rotation.z = t * 3; shaft.rotation.x = t * 3;
-      const bp = seg(bladeStart, 0.5, t);
+      const bp = seg(bladeStart, 0.35, t);
       if (bp > 0) { hub.visible = true; hub.position.y = topY + (1 - bp) * DROP * 0.4; hub.position.z = 0.22 * S + (1 - bp) * 0.5; }
       hub.rotation.z = -t * 1.3 * seg(spinStart, 1.2, t);
     }
@@ -271,9 +274,10 @@ function buildWind(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
 function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
   brightEnv(scene, textures);
 
-  const concrete = new THREE.MeshStandardMaterial({ color: 0xeaf1ee, roughness: 0.9 });
-  const band = new THREE.MeshStandardMaterial({ color: 0xd06a4a, roughness: 0.8 });
-  const metal = new THREE.MeshStandardMaterial({ color: 0xcdd8d6, roughness: 0.6, metalness: 0.15 });
+  // Mid-tone materials so the plant reads clearly against the pale bright sky.
+  const concrete = new THREE.MeshStandardMaterial({ color: 0xbcc6c1, roughness: 0.9 });
+  const band = new THREE.MeshStandardMaterial({ color: 0xc85f40, roughness: 0.8 });
+  const metal = new THREE.MeshStandardMaterial({ color: 0xa7b3b0, roughness: 0.6, metalness: 0.15 });
 
   const parts: { g: THREE.Group; start: number }[] = [];
   const emitters: [number, number, number][] = []; // world x, top y, z for smoke/steam
@@ -293,32 +297,32 @@ function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
     emitters.push([x, -2 + 2.5 * s, z]);
     return g;
   };
-  coolingTower(-2.3, -2, 1.0, 3.4);
-  coolingTower(-3.9, -4.2, 0.82, 3.9);
+  coolingTower(-1.9, -1.5, 1.05, 2.1);
+  coolingTower(-3.2, -3.4, 0.85, 2.5);
 
   // Boiler building.
   const bldg = new THREE.Group();
-  bldg.position.set(0.7, -2, -1.2);
+  bldg.position.set(0.8, -2, -1.4);
   const box = new THREE.Mesh(new THREE.BoxGeometry(1.7, 1.5, 1.3), concrete);
   box.position.y = 0.75;
   const roof = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.12, 1.4), metal);
   roof.position.y = 1.5;
   bldg.add(box, roof);
   scene.add(bldg);
-  parts.push({ g: bldg, start: 4.8 });
+  parts.push({ g: bldg, start: 3.0 });
 
   // Smokestacks with red bands.
-  ([[1.9, -1.5, 1.0], [2.8, -3.2, 0.85]] as [number, number, number][]).forEach(([x, z, s], i) => {
+  ([[2.4, -1.4, 1.05], [3.2, -3, 0.9]] as [number, number, number][]).forEach(([x, z, s], i) => {
     const g = new THREE.Group();
     g.position.set(x, -2, z);
-    const st = new THREE.Mesh(new THREE.CylinderGeometry(0.12 * s, 0.17 * s, 2.8 * s, 16), metal);
-    st.position.y = 1.4 * s;
+    const st = new THREE.Mesh(new THREE.CylinderGeometry(0.12 * s, 0.17 * s, 2.9 * s, 16), metal);
+    st.position.y = 1.45 * s;
     const ring = new THREE.Mesh(new THREE.CylinderGeometry(0.125 * s, 0.125 * s, 0.2 * s, 16), band);
-    ring.position.y = 2.5 * s;
+    ring.position.y = 2.6 * s;
     g.add(st, ring);
     scene.add(g);
-    parts.push({ g, start: 2.2 + i * 0.4 });
-    emitters.push([x, -2 + 2.8 * s, z]);
+    parts.push({ g, start: 1.4 + i * 0.35 });
+    emitters.push([x, -2 + 2.9 * s, z]);
   });
 
   // Smoke/steam from every emitter — billows up, then fades as the plant shuts down.
@@ -333,15 +337,15 @@ function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
     seed[i] = Math.random();
   }
   geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  const smokeMat = new THREE.PointsMaterial({ color: 0xb9c2c0, size: 0.55, map: dotTexture(textures), transparent: true, opacity: 0.24, depthWrite: false });
+  const smokeMat = new THREE.PointsMaterial({ color: 0x9aa4a2, size: 0.6, map: dotTexture(textures), transparent: true, opacity: 0.4, depthWrite: false });
   scene.add(new THREE.Points(geo, smokeMat));
 
   return {
-    cam: { pos: [0, 1.7, 10], look: [-0.3, 1.1, -2] },
+    cam: { pos: [0, 1.3, 7.6], look: [0, 0.8, -2] },
     bloom: { strength: 0.18, radius: 0.6, threshold: 0.92 },
     update(t) {
-      // Emissions fade over the first ~1.8 s as the plant powers down.
-      smokeMat.opacity = 0.24 * (1 - clamp01((t - 0.6) / 1.6));
+      // Emissions fade over the first ~1.5 s as the plant powers down.
+      smokeMat.opacity = 0.4 * (1 - clamp01((t - 0.5) / 1.3));
       const arr = geo.attributes.position.array as Float32Array;
       for (let i = 0; i < count; i++) {
         const [sx, sy, sz] = emitters[Math.floor(i / per)];
@@ -352,7 +356,7 @@ function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
       geo.attributes.position.needsUpdate = true;
       // Systematic decommissioning: each part retracts down into the ground.
       parts.forEach(({ g, start }) => {
-        const p = clamp01((t - start) / 0.9);
+        const p = clamp01((t - start) / 0.6);
         g.scale.y = 1 - p;
         g.visible = p < 1;
       });
@@ -652,9 +656,10 @@ export default function Scene3D({ type, active }: { type: Scene3DType; active: b
 
     let raf = 0;
     const start = performance.now();
-    // Reduced motion still gets ambient movement, just slow and without
-    // camera sway — a full freeze reads as a broken/static page.
-    const speed = reduced ? 0.16 : 1;
+    // Reduced motion runs slower and without camera sway, but not so slow that
+    // the timed assembly/decommission sequences can't finish in the display
+    // window (0.16 left them permanently half-built).
+    const speed = reduced ? 0.55 : 1;
     const renderOnce = (t: number) => {
       controller.update(t * speed);
       if (!reduced) camera.position.x = cx + Math.sin(t * 0.06) * 0.35;
