@@ -1,5 +1,8 @@
 # Changelog
 
+## v5.6.3 — Solar panels read as panels from any angle
+- The solar (04) panels had the PV cell-grid on only their top face, so a panel that tumbled to show its back or underside became a featureless grey slab — half the field looked like floating concrete. Put the PV glass on both broad faces and slimmed the panel with a darker, less obtrusive edge frame, so each one reads as a solar panel however it rotates. (The field is a stylised floating array, not a physics sim — panels tumble and bob by design; only the texturing was at fault.)
+
 ## v5.6.2 — Brisker hero cadence
 - Hero scenes now advance every 5 s (was 7 s), with a slightly quicker caption crossfade (in 0.24 s / out 0.14 s, was 0.3 / 0.18). The 3D motion speed is bumped to match — 1.25× at normal (was 1×), and reduced-motion scaled proportionally to 0.7× (was 0.55×) so it stays calm but never feels stalled.
 

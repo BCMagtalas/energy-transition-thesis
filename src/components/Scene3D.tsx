@@ -493,12 +493,12 @@ function buildSolar(scene: THREE.Scene, textures: THREE.Texture[], dir: THREE.Di
   dir.position.set(-2, 3, 4);
   dir.intensity = 2.1;
 
-  // Shared panel materials: bright PV glass on the top face, aluminium elsewhere.
+  // Shared panel materials: PV glass on BOTH broad faces so a panel reads as a
+  // panel however it tumbles; a slim dark frame on the four thin edges.
   const pvMat = new THREE.MeshStandardMaterial({ map: pvTexture(textures), roughness: 0.3, metalness: 0.2, emissive: 0x14345c, emissiveIntensity: 0.35 });
-  const frameMat = new THREE.MeshStandardMaterial({ color: 0xc2cad1, roughness: 0.5, metalness: 0.55 });
-  const backMat = new THREE.MeshStandardMaterial({ color: 0x8f979e, roughness: 0.7, metalness: 0.3 });
-  const faceMats = [frameMat, frameMat, pvMat, backMat, frameMat, frameMat]; // BoxGeometry +x,-x,+y,-y,+z,-z
-  const panelGeo = new THREE.BoxGeometry(1.15, 0.05, 0.78);
+  const frameMat = new THREE.MeshStandardMaterial({ color: 0x6a7683, roughness: 0.5, metalness: 0.55 });
+  const faceMats = [frameMat, frameMat, pvMat, pvMat, frameMat, frameMat]; // BoxGeometry +x,-x,+y,-y,+z,-z
+  const panelGeo = new THREE.BoxGeometry(1.15, 0.04, 0.78);
 
   const field = new THREE.Group();
   scene.add(field);
