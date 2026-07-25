@@ -1,5 +1,8 @@
 # Changelog
 
+## v5.6.4 — Solar panels no longer clip the sun or each other
+- The panels were scattered at random positions in a box while the whole field rotated around the world origin (with the sun off to one side), so rotation dragged panels through the sun and random placement let them overlap. Reworked without a physics engine: panels are now placed on an even Fibonacci-sphere shell **around the sun**, the field is parented **to the sun** so its slow rotation is a rigid orbit (constant distance to the sun, constant spacing between panels), and each panel only tumbles in place + drifts radially along its own spoke (clamped clear of the sun). Even spacing + rigid rotation = no intersections, ever. Also reads better as an array orbiting the sun.
+
 ## v5.6.3 — Solar panels read as panels from any angle
 - The solar (04) panels had the PV cell-grid on only their top face, so a panel that tumbled to show its back or underside became a featureless grey slab — half the field looked like floating concrete. Put the PV glass on both broad faces and slimmed the panel with a darker, less obtrusive edge frame, so each one reads as a solar panel however it rotates. (The field is a stylised floating array, not a physics sim — panels tumble and bob by design; only the texturing was at fault.)
 

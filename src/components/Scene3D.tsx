@@ -500,31 +500,35 @@ function buildSolar(scene: THREE.Scene, textures: THREE.Texture[], dir: THREE.Di
   const faceMats = [frameMat, frameMat, pvMat, pvMat, frameMat, frameMat]; // BoxGeometry +x,-x,+y,-y,+z,-z
   const panelGeo = new THREE.BoxGeometry(1.15, 0.04, 0.78);
 
+  // Parent the field to the sun so any rotation keeps every panel at a constant
+  // distance from it — panels orbit the sun rigidly and never pass through it.
   const field = new THREE.Group();
+  field.position.copy(sunCore.position);
   scene.add(field);
-  const panels: { mesh: THREE.Mesh; spinX: number; spinY: number; bobAmp: number; bobSpeed: number; phase: number; baseY: number }[] = [];
-  const COUNT = 16;
+  const panels: { mesh: THREE.Mesh; dir: THREE.Vector3; radius: number; spinX: number; spinY: number; bobAmp: number; bobSpeed: number; phase: number }[] = [];
+  const COUNT = 15;
+  const golden = Math.PI * (3 - Math.sqrt(5));
   for (let i = 0; i < COUNT; i++) {
     const mesh = new THREE.Mesh(panelGeo, faceMats);
-    // Scatter through a wide volume; keep a clear-ish core around the sun.
-    const angle = Math.random() * Math.PI * 2;
-    const radius = 2.4 + Math.random() * 4.6;
-    const x = Math.cos(angle) * radius;
-    const y = (Math.random() - 0.5) * 5;
-    const z = -4.5 + Math.random() * 6.5;
-    const s = 0.55 + Math.random() * 0.9;           // varied size = depth cue
+    // Even (Fibonacci-sphere) directions → roughly equal angular spacing, so no
+    // two panels overlap; radius stays well clear of the sun + panel half-size.
+    const yy = 1 - ((i + 0.5) / COUNT) * 2;
+    const ring = Math.sqrt(Math.max(0, 1 - yy * yy));
+    const phi = i * golden;
+    const dir = new THREE.Vector3(Math.cos(phi) * ring, yy, Math.sin(phi) * ring).normalize();
+    const radius = 2.7 + Math.random() * 1.2;       // shell 2.7–3.9 around the sun
+    const s = 0.5 + Math.random() * 0.5;            // varied size = depth cue (capped so neighbours can't touch)
     mesh.scale.setScalar(s);
-    mesh.position.set(x, y, z);
+    mesh.position.copy(dir).multiplyScalar(radius);
     mesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
     field.add(mesh);
     panels.push({
-      mesh,
+      mesh, dir, radius,
       spinX: (Math.random() - 0.5) * 0.28,
       spinY: (Math.random() - 0.5) * 0.34,
-      bobAmp: 0.15 + Math.random() * 0.3,
+      bobAmp: 0.1 + Math.random() * 0.25,          // small radial drift only
       bobSpeed: 0.3 + Math.random() * 0.5,
-      phase: Math.random() * Math.PI * 2,
-      baseY: y
+      phase: Math.random() * Math.PI * 2
     });
   }
 
@@ -532,14 +536,15 @@ function buildSolar(scene: THREE.Scene, textures: THREE.Texture[], dir: THREE.Di
     cam: { pos: [0, 0.4, 9], look: [-0.4, 0, -1] },
     bloom: { strength: 0.55, radius: 0.75, threshold: 0.62 },
     update(t) {
-      // Each panel tumbles slowly on its own axes and bobs vertically; the whole
-      // field drifts for parallax so the cloud feels alive and three-dimensional.
+      // Each panel tumbles on its own axes and drifts only radially (out/in along
+      // its own spoke), so it never crosses a neighbour or the sun.
       panels.forEach(p => {
         p.mesh.rotation.x += p.spinX * 0.016;
         p.mesh.rotation.y += p.spinY * 0.016;
-        p.mesh.position.y = p.baseY + Math.sin(t * p.bobSpeed + p.phase) * p.bobAmp;
+        const rr = p.radius + Math.sin(t * p.bobSpeed + p.phase) * p.bobAmp;
+        p.mesh.position.copy(p.dir).multiplyScalar(rr);
       });
-      field.rotation.y = Math.sin(t * 0.05) * 0.22;
+      field.rotation.y = t * 0.05;                  // slow rigid orbit around the sun
       field.rotation.x = Math.sin(t * 0.04) * 0.06;
       pvMat.emissiveIntensity = 0.3 + 0.15 * (0.5 + 0.5 * Math.sin(t * 0.9));
       wire.rotation.y = t * 0.06;
