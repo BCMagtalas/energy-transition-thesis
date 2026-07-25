@@ -102,55 +102,70 @@ function makeGlow(color: number, scale: number, textures: THREE.Texture[]): THRE
   return s;
 }
 
-/* ---------- shared bright "digital landscape" environment ---------- */
-function brightEnv(scene: THREE.Scene, textures: THREE.Texture[]): void {
-  // Clean, saturated blue→mint sky (bright, never dark).
-  setSky(scene, [[0, '#7cbce8'], [0.48, '#bcdfe6'], [1, '#e9f5ef']], textures);
-  // Light fog for far-horizon depth only — near/mid objects stay crisp.
-  scene.fog = new THREE.Fog(0xdcecec, 46, 120);
+/* ---------- shared dark "digital night" stage (matches scenes 03–05) ---------- */
+function darkStage(
+  scene: THREE.Scene,
+  textures: THREE.Texture[],
+  sky: [number, string][],
+  fog: number,
+  gridColor: number
+): void {
+  setSky(scene, sky, textures);
+  scene.fog = new THREE.Fog(fog, 24, 62);
 
-  // Directional key light gives the white structures real form and gradients;
-  // a gentle sky/ground hemisphere fills the shadows without flattening them.
-  const key = new THREE.DirectionalLight(0xfff6e8, 1.7);
-  key.position.set(6, 10, 6);
-  scene.add(key, new THREE.HemisphereLight(0xdcefff, 0xbfd6cd, 0.5));
-
-  // Crisp emerald grid floor = the futuristic digital landscape.
-  const grid = new THREE.GridHelper(120, 120, 0x2f9e82, 0x7bbcae);
+  // A faint glowing grid over a near-black floor = the same digital ground the
+  // globe/particle scenes float above, so all five heroes share one world.
+  const grid = new THREE.GridHelper(140, 70, gridColor, gridColor);
   const gm = grid.material as THREE.Material;
-  gm.transparent = true; gm.opacity = 0.6;
+  gm.transparent = true; gm.opacity = 0.14;
   grid.position.y = -2;
   scene.add(grid);
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(120, 120), new THREE.MeshStandardMaterial({ color: 0xcfe3db, roughness: 0.95 }));
+  const floor = new THREE.Mesh(
+    new THREE.PlaneGeometry(140, 140),
+    new THREE.MeshStandardMaterial({ color: 0x06110d, roughness: 1 })
+  );
   floor.rotation.x = -Math.PI / 2;
   floor.position.y = -2.02;
   scene.add(floor);
-
-  // A few small, crisp, high clouds — subtle, never blobby.
-  const cloudTex = glowTexture(textures);
-  ([[-14, 8, -26], [10, 9.5, -30], [20, 7.5, -24]] as [number, number, number][]).forEach(([cx, cy, cz]) => {
-    for (let p = 0; p < 3; p++) {
-      const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: cloudTex, color: 0xffffff, transparent: true, opacity: 0.22, depthWrite: false }));
-      s.position.set(cx + (p - 1) * 1.8, cy + (Math.random() - 0.5) * 0.6, cz);
-      s.scale.set(3.4 - Math.abs(p - 1) * 0.8, 1.8, 1);
-      scene.add(s);
-    }
-  });
 }
 
-/** Simple turbine (tower + nacelle + 3-blade hub) returning its spinnable hub. */
-function makeTurbine(s: number, mat: THREE.Material, bladeMat: THREE.Material): { turbine: THREE.Group; hub: THREE.Group } {
+/** Tapered, twisted airfoil blade (root at y=0, tip at y=+L) for realistic rotors. */
+function bladeGeometry(): THREE.ExtrudeGeometry {
+  const L = 1.65;
+  const shape = new THREE.Shape();
+  shape.moveTo(-0.07, 0);                       // root · leading edge
+  shape.lineTo(0.10, 0);                        // root · trailing edge (wider chord)
+  shape.quadraticCurveTo(0.055, L * 0.5, 0.014, L); // trailing edge sweeps to a fine tip
+  shape.quadraticCurveTo(-0.05, L * 0.5, -0.07, 0); // leading edge back to root
+  shape.closePath();
+  const geo = new THREE.ExtrudeGeometry(shape, {
+    depth: 0.03, bevelEnabled: true, bevelThickness: 0.012, bevelSize: 0.012, bevelSegments: 1, steps: 1
+  });
+  geo.translate(0, 0, -0.021);
+  return geo;
+}
+
+/** Realistic 3-blade turbine: tapered tower, capsule nacelle, coned hub, airfoil blades. */
+function realTurbine(
+  s: number, bladeGeo: THREE.BufferGeometry,
+  mat: THREE.Material, bladeMat: THREE.Material
+): { turbine: THREE.Group; hub: THREE.Group } {
   const turbine = new THREE.Group();
-  const h = 3.2 * s;
-  const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.05 * s, 0.09 * s, h, 12), mat);
+  const h = 3.4 * s;
+  const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.05 * s, 0.11 * s, h, 24), mat);
   tower.position.y = h / 2;
-  const nacelle = new THREE.Mesh(new THREE.BoxGeometry(0.3 * s, 0.15 * s, 0.15 * s), mat);
-  nacelle.position.set(0, h, 0.05);
+  const nacelle = new THREE.Mesh(new THREE.CapsuleGeometry(0.085 * s, 0.26 * s, 6, 16), mat);
+  nacelle.rotation.x = Math.PI / 2;            // lay the capsule along the wind axis (Z)
+  nacelle.position.set(0, h, -0.03 * s);
   const hub = new THREE.Group();
-  hub.position.set(0, h, 0.16 * s);
+  hub.position.set(0, h, 0.15 * s);
+  const nose = new THREE.Mesh(new THREE.ConeGeometry(0.07 * s, 0.16 * s, 18), mat);
+  nose.rotation.x = Math.PI / 2; nose.position.z = 0.07 * s;
+  hub.add(nose);
   for (let b = 0; b < 3; b++) {
-    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.06 * s, 1.35 * s, 0.02), bladeMat);
-    blade.position.y = 0.68 * s;
+    const blade = new THREE.Mesh(bladeGeo, bladeMat);
+    blade.scale.setScalar(s);
+    blade.rotation.y = 0.28;                    // pitch/twist so the airfoil catches the light
     const hold = new THREE.Group();
     hold.rotation.z = (b * Math.PI * 2) / 3;
     hold.add(blade);
@@ -160,220 +175,174 @@ function makeTurbine(s: number, mat: THREE.Material, bladeMat: THREE.Material): 
   return { turbine, hub };
 }
 
-const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
+/** Hyperboloid cooling-tower profile (wide base → pinched waist → flared rim). */
+function coolingTowerGeo(s: number): THREE.LatheGeometry {
+  const pts: THREE.Vector2[] = [];
+  const H = 2.7 * s, N = 16, waistAt = 0.66;
+  const rBase = 1.0 * s, rWaist = 0.58 * s, rTop = 0.72 * s;
+  for (let i = 0; i <= N; i++) {
+    const u = i / N;
+    let r: number;
+    if (u < waistAt) { const k = u / waistAt; r = rBase + (rWaist - rBase) * Math.sin((k * Math.PI) / 2); }
+    else { const k = (u - waistAt) / (1 - waistAt); r = rWaist + (rTop - rWaist) * k * k; }
+    pts.push(new THREE.Vector2(Math.max(0.01, r), u * H));
+  }
+  return new THREE.LatheGeometry(pts, 48);
+}
 
-/* ---------- 01 · wind — a turbine self-assembles on a digital plain ---------- */
+/* ---------- 01 · wind — a night wind farm turning against the glow ---------- */
 function buildWind(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
-  brightEnv(scene, textures);
+  darkStage(scene, textures, [[0, '#03130e'], [0.58, '#0a3123'], [1, '#0f4634']], 0x0a3123, 0x2f9e82);
 
-  // Clean off-white with a little sheen so the key light sculpts real form/gradients.
-  const white = new THREE.MeshStandardMaterial({ color: 0xeef3f1, roughness: 0.45, metalness: 0.18 });
-  const bladeMat = new THREE.MeshStandardMaterial({ color: 0xf6f9f8, roughness: 0.4, metalness: 0.1 });
+  // A soft moon-glow behind the farm rim-lights the towers so they read against the dark.
+  const moon = makeGlow(0xbfe6d8, 6.5, textures);
+  moon.position.set(2.4, 3, -13);
+  scene.add(moon);
+  const rim = new THREE.DirectionalLight(0xdff2ea, 1.5);
+  rim.position.set(-5, 5, -6);
+  scene.add(rim);
 
-  // Background wind farm, already assembled and turning.
-  const bg: { hub: THREE.Group; rate: number }[] = [];
-  ([[-6, -15, 1.4], [5, -17, 1.6], [-2, -21, 1.9], [9, -24, 2.0]] as [number, number, number][]).forEach(([x, z, s]) => {
-    const { turbine, hub } = makeTurbine(s, white, bladeMat);
+  // Bright brushed-white nacelles/blades that bloom softly against the night.
+  const mat = new THREE.MeshStandardMaterial({ color: 0xeef3f1, roughness: 0.4, metalness: 0.24 });
+  const bladeMat = new THREE.MeshStandardMaterial({ color: 0xf7faf9, roughness: 0.36, metalness: 0.12 });
+  const bladeGeo = bladeGeometry();
+
+  const hubs: { hub: THREE.Group; rate: number }[] = [];
+  const layout: [number, number, number][] = [
+    [-3.4, 1.0, 1.25], [1.9, -0.2, 1.05], [4.9, -2.6, 0.85],
+    [-6.2, -3.2, 0.7], [-0.6, -5.6, 0.6], [6.9, -6.6, 0.5]
+  ];
+  layout.forEach(([x, z, sc], i) => {
+    const { turbine, hub } = realTurbine(sc, bladeGeo, mat, bladeMat);
     turbine.position.set(x, -2, z);
-    turbine.rotation.y = -0.3 + Math.random() * 0.6;
+    turbine.rotation.y = -0.28 + (i % 3) * 0.22;
     scene.add(turbine);
-    bg.push({ hub, rate: 0.6 + Math.random() * 0.4 });
+    hubs.push({ hub, rate: 0.6 + (i % 3) * 0.26 });
   });
 
-  // Foreground turbine that assembles piece by piece.
-  const S = 1.15;
-  const fg = new THREE.Group();
-  fg.position.set(-1.1, -2, -3);
-  scene.add(fg);
-  const foundation = new THREE.Mesh(new THREE.CylinderGeometry(0.55 * S, 0.65 * S, 0.2 * S, 28), new THREE.MeshStandardMaterial({ color: 0xbcc8c3, roughness: 0.85 }));
-  foundation.position.y = 0.1 * S;
-  fg.add(foundation);
-
-  const segH = 1.15 * S, segCount = 3;
-  const segs: { mesh: THREE.Mesh; targetY: number; i: number }[] = [];
-  for (let i = 0; i < segCount; i++) {
-    const rt = (0.13 - 0.02 * i) * S, rb = (0.15 - 0.02 * i) * S;
-    const mesh = new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, segH, 16), white);
-    mesh.visible = false;
-    fg.add(mesh);
-    segs.push({ mesh, targetY: 0.2 * S + segH * (i + 0.5), i });
-  }
-  const topY = 0.2 * S + segH * segCount;
-
-  // Nacelle with a translucent "x-ray" shell revealing gears, then solidifying.
-  const nacelle = new THREE.Group();
-  nacelle.position.set(0, topY, 0.05);
-  nacelle.visible = false;
-  fg.add(nacelle);
-  const shellMat = new THREE.MeshStandardMaterial({ color: 0xeef3f1, roughness: 0.45, metalness: 0.18, transparent: true, opacity: 1 });
-  const shell = new THREE.Mesh(new THREE.BoxGeometry(0.42 * S, 0.22 * S, 0.24 * S), shellMat);
-  const gearMat = new THREE.MeshStandardMaterial({ color: 0x86a0a6, metalness: 0.7, roughness: 0.4 });
-  const gear = new THREE.Mesh(new THREE.TorusGeometry(0.07 * S, 0.022 * S, 6, 12), gearMat);
-  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.028 * S, 0.028 * S, 0.24 * S, 8), gearMat);
-  shaft.rotation.z = Math.PI / 2;
-  nacelle.add(shell, gear, shaft);
-
-  const hub = new THREE.Group();
-  hub.position.set(0, topY, 0.22 * S);
-  hub.visible = false;
-  fg.add(hub);
-  hub.add(new THREE.Mesh(new THREE.SphereGeometry(0.06 * S, 10, 10), white));
-  for (let b = 0; b < 3; b++) {
-    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.07 * S, 1.5 * S, 0.02), bladeMat);
-    blade.position.y = 0.75 * S;
-    const hold = new THREE.Group();
-    hold.rotation.z = (b * Math.PI * 2) / 3;
-    hold.add(blade);
-    hub.add(hold);
-  }
-
-  // Holographic emerald-cyan guide lines around the tower during assembly.
-  const guides: THREE.MeshBasicMaterial[] = [];
-  for (let k = 0; k < 4; k++) {
-    const ang = (k / 4) * Math.PI * 2;
-    const mat = new THREE.MeshBasicMaterial({ color: 0x2fd6c0, transparent: true, opacity: 0 });
-    const line = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, topY + 0.5, 6), mat);
-    line.position.set(Math.cos(ang) * 0.34 * S, (topY + 0.5) / 2, Math.sin(ang) * 0.34 * S);
-    fg.add(line);
-    guides.push(mat);
-  }
-
-  const DROP = 4.5;
-  const seg = (start: number, dur: number, t: number) => clamp01((t - start) / dur);
-  // Compressed timeline — assembly completes ~2.7 s, so it finishes in-window
-  // even under reduced motion.
-  const nacStart = 0.3 + segCount * 0.35 + 0.15;
-  const solidStart = nacStart + 0.4;
-  const bladeStart = solidStart + 0.4;
-  const spinStart = bladeStart + 0.45;
-
   return {
-    cam: { pos: [0, 1.5, 9], look: [-0.5, 1.1, -3] },
-    bloom: { strength: 0.2, radius: 0.7, threshold: 0.92 },
+    cam: { pos: [0, 1.1, 9], look: [0, 1.3, -3] },
+    bloom: { strength: 0.7, radius: 0.8, threshold: 0.5 },
     update(t) {
-      bg.forEach(o => { o.hub.rotation.z = -t * o.rate; });
-      const guideOn = seg(0.15, 0.3, t) * (1 - seg(spinStart, 0.6, t));
-      guides.forEach(m => { m.opacity = 0.55 * guideOn; });
-      segs.forEach(({ mesh, targetY, i }) => {
-        const p = seg(0.3 + i * 0.35, 0.35, t);
-        if (p > 0) { mesh.visible = true; mesh.position.y = targetY + (1 - p) * DROP; }
-      });
-      const np = seg(nacStart, 0.35, t);
-      if (np > 0) { nacelle.visible = true; nacelle.position.y = topY + (1 - np) * DROP; }
-      const solid = seg(solidStart, 0.35, t);
-      shellMat.opacity = 0.3 + 0.7 * solid;
-      gear.visible = shaft.visible = solid < 1;
-      gear.rotation.z = t * 3; shaft.rotation.x = t * 3;
-      const bp = seg(bladeStart, 0.35, t);
-      if (bp > 0) { hub.visible = true; hub.position.y = topY + (1 - bp) * DROP * 0.4; hub.position.z = 0.22 * S + (1 - bp) * 0.5; }
-      hub.rotation.z = -t * 1.3 * seg(spinStart, 1.2, t);
+      hubs.forEach(o => { o.hub.rotation.z = -t * o.rate; });
+      moon.scale.setScalar(6.5 + Math.sin(t * 0.6) * 0.35);
     }
   };
 }
 
-/* ---------- 02 · emissions — a coal plant is decommissioned ---------- */
+/* ---------- 02 · emissions — a coal plant glowing in the industrial night ---------- */
 function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
-  brightEnv(scene, textures);
+  darkStage(scene, textures, [[0, '#0a0b0e'], [0.55, '#1d1410'], [1, '#3a2312']], 0x1d1410, 0x7a5230);
 
-  // Clean concrete/metal with light sheen so the key light gives them form.
-  const concrete = new THREE.MeshStandardMaterial({ color: 0xd7ddd8, roughness: 0.82, metalness: 0.05 });
-  const band = new THREE.MeshStandardMaterial({ color: 0xd06845, roughness: 0.7 });
-  const metal = new THREE.MeshStandardMaterial({ color: 0xc2ccc9, roughness: 0.5, metalness: 0.25 });
-  const padMat = new THREE.MeshStandardMaterial({ color: 0xb7c2bc, roughness: 0.95 });
+  // A low ember glow (the furnace) warms the whole plant from below.
+  const ember = makeGlow(0xdb7a2e, 9, textures);
+  ember.position.set(0, -0.6, -11);
+  scene.add(ember);
+  const key = new THREE.DirectionalLight(0xffd6a0, 1.25);
+  key.position.set(3, 6, 4);
+  scene.add(key);
 
-  const parts: { g: THREE.Group; start: number }[] = [];
-  const emitters: [number, number, number][] = []; // world x, top y, z for smoke/steam
-  // A flat foundation pad left behind wherever a structure stood, so the cleared
-  // site reads as "decommissioned" (footprints) rather than an empty grid.
-  const pad = (x: number, z: number, r: number) => {
-    const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.06, 24), padMat);
-    m.position.set(x, -1.97, z);
+  const concrete = new THREE.MeshStandardMaterial({ color: 0x8a938f, roughness: 0.92 });
+  concrete.side = THREE.DoubleSide;
+  const metal = new THREE.MeshStandardMaterial({ color: 0x707a77, roughness: 0.55, metalness: 0.3 });
+  const band = new THREE.MeshStandardMaterial({ color: 0xb0472e, roughness: 0.7 });
+
+  type Emitter = { pos: [number, number, number]; r: number; steam: boolean };
+  const emitters: Emitter[] = [];
+
+  // Hyperboloid cooling towers with rising steam.
+  const coolTower = (x: number, z: number, s: number) => {
+    const m = new THREE.Mesh(coolingTowerGeo(s), concrete);
+    m.position.set(x, -2, z);
     scene.add(m);
+    emitters.push({ pos: [x, -2 + 2.6 * s, z], r: 0.5 * s, steam: true });
   };
+  coolTower(-2.2, -1.7, 1.05);
+  coolTower(-3.7, -3.6, 0.82);
 
-  // Cooling towers (hollow hyperbolic-ish shells).
-  const coolingTower = (x: number, z: number, s: number, start: number) => {
-    const g = new THREE.Group();
-    g.position.set(x, -2, z);
-    const shell = new THREE.Mesh(new THREE.CylinderGeometry(0.72 * s, 1.05 * s, 2.5 * s, 30, 1, true), concrete);
-    (shell.material as THREE.MeshStandardMaterial).side = THREE.DoubleSide;
-    shell.position.y = 1.25 * s;
-    const rim = new THREE.Mesh(new THREE.TorusGeometry(0.72 * s, 0.04 * s, 8, 30), concrete);
-    rim.rotation.x = Math.PI / 2; rim.position.y = 2.5 * s;
-    g.add(shell, rim);
-    scene.add(g);
-    parts.push({ g, start });
-    emitters.push([x, -2 + 2.5 * s, z]);
-    pad(x, z, 1.1 * s);
-    return g;
-  };
-  coolingTower(-1.9, -1.5, 1.05, 3.4);
-  coolingTower(-3.2, -3.4, 0.85, 3.9);
-
-  // Boiler building.
+  // Boiler house: a stepped block with a service pipe.
   const bldg = new THREE.Group();
-  bldg.position.set(0.8, -2, -1.4);
-  const box = new THREE.Mesh(new THREE.BoxGeometry(1.7, 1.5, 1.3), concrete);
-  box.position.y = 0.75;
-  const roof = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.12, 1.4), metal);
-  roof.position.y = 1.5;
-  bldg.add(box, roof);
+  bldg.position.set(1.0, -2, -1.2);
+  const base = new THREE.Mesh(new THREE.BoxGeometry(1.9, 1.6, 1.4), concrete);
+  base.position.y = 0.8;
+  const upper = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.85, 1.0), concrete);
+  upper.position.set(-0.25, 1.85, 0);
+  const duct = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 1.7, 12), metal);
+  duct.position.set(0.7, 2.0, 0.35);
+  bldg.add(base, upper, duct);
   scene.add(bldg);
-  parts.push({ g: bldg, start: 4.6 });
-  pad(0.8, -1.4, 1.0);
 
-  // Smokestacks with red bands.
-  ([[2.4, -1.4, 1.05], [3.2, -3, 0.9]] as [number, number, number][]).forEach(([x, z, s], i) => {
-    const g = new THREE.Group();
-    g.position.set(x, -2, z);
-    const st = new THREE.Mesh(new THREE.CylinderGeometry(0.12 * s, 0.17 * s, 2.9 * s, 16), metal);
-    st.position.y = 1.45 * s;
-    const ring = new THREE.Mesh(new THREE.CylinderGeometry(0.125 * s, 0.125 * s, 0.2 * s, 16), band);
-    ring.position.y = 2.6 * s;
-    g.add(st, ring);
-    pad(x, z, 0.28 * s);
-    scene.add(g);
-    parts.push({ g, start: 2.8 + i * 0.35 });
-    emitters.push([x, -2 + 2.9 * s, z]);
+  // Smokestacks with red bands + blinking hazard beacons, trailing dark smoke.
+  const beacons: { mat: THREE.MeshBasicMaterial; glow: THREE.Sprite; phase: number }[] = [];
+  ([[2.6, -1.4, 1.1], [3.5, -3.2, 0.9]] as [number, number, number][]).forEach(([x, z, s], i) => {
+    const st = new THREE.Mesh(new THREE.CylinderGeometry(0.12 * s, 0.18 * s, 3.2 * s, 20), metal);
+    st.position.set(x, -2 + 1.6 * s, z);
+    const ring = new THREE.Mesh(new THREE.CylinderGeometry(0.126 * s, 0.126 * s, 0.22 * s, 20), band);
+    ring.position.set(x, -2 + 2.85 * s, z);
+    scene.add(st, ring);
+    const topY = -2 + 3.2 * s;
+    const bMat = new THREE.MeshBasicMaterial({ color: 0xff5a44, transparent: true });
+    const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.055 * s, 8, 8), bMat);
+    beacon.position.set(x, topY, z);
+    const bGlow = makeGlow(0xff5a44, 0.6, textures);
+    bGlow.position.set(x, topY, z);
+    scene.add(beacon, bGlow);
+    beacons.push({ mat: bMat, glow: bGlow, phase: i * 2.1 });
+    emitters.push({ pos: [x, topY, z], r: 0.14 * s, steam: false });
   });
 
-  // Smoke/steam from every emitter — billows up, then fades as the plant shuts down.
-  const per = 70;
+  // Combined particle system: light steam from towers, dark smoke from stacks.
+  const per = 84;
   const count = emitters.length * per;
   const geo = new THREE.BufferGeometry();
   const pos = new Float32Array(count * 3);
+  const col = new Float32Array(count * 3);
   const seed = new Float32Array(count);
-  for (let i = 0; i < count; i++) {
-    const [sx, sy, sz] = emitters[Math.floor(i / per)];
-    pos[i * 3] = sx; pos[i * 3 + 1] = sy + Math.random() * 4; pos[i * 3 + 2] = sz;
-    seed[i] = Math.random();
-  }
+  const steamC = [0.82, 0.86, 0.88], smokeC = [0.24, 0.22, 0.2];
+  emitters.forEach((e, ei) => {
+    const c = e.steam ? steamC : smokeC;
+    for (let j = 0; j < per; j++) {
+      const idx = ei * per + j, i3 = idx * 3;
+      pos[i3] = e.pos[0] + (Math.random() - 0.5) * e.r * 2;
+      pos[i3 + 1] = e.pos[1] + Math.random() * 3.4;
+      pos[i3 + 2] = e.pos[2] + (Math.random() - 0.5) * e.r * 2;
+      col[i3] = c[0]; col[i3 + 1] = c[1]; col[i3 + 2] = c[2];
+      seed[idx] = Math.random();
+    }
+  });
   geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  const smokeMat = new THREE.PointsMaterial({ color: 0x9aa4a2, size: 0.6, map: dotTexture(textures), transparent: true, opacity: 0.4, depthWrite: false });
+  geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  const smokeMat = new THREE.PointsMaterial({
+    size: 0.55, map: dotTexture(textures), vertexColors: true, transparent: true, opacity: 0.5, depthWrite: false
+  });
   scene.add(new THREE.Points(geo, smokeMat));
 
   return {
-    cam: { pos: [0, 1.3, 7.6], look: [0, 0.8, -2] },
-    bloom: { strength: 0.18, radius: 0.6, threshold: 0.92 },
+    cam: { pos: [0, 1.5, 9.4], look: [0, 1.0, -2] },
+    bloom: { strength: 0.6, radius: 0.72, threshold: 0.5 },
     update(t) {
-      // Emissions fade over the first ~1.5 s as the plant powers down.
-      smokeMat.opacity = 0.4 * (1 - clamp01((t - 0.5) / 1.3));
+      ember.scale.setScalar(9 + Math.sin(t * 0.5) * 0.5);
+      beacons.forEach(o => {
+        const v = 0.28 + 0.72 * Math.pow(Math.abs(Math.sin(t * 1.6 + o.phase)), 4);
+        o.mat.opacity = v;
+        (o.glow.material as THREE.SpriteMaterial).opacity = v;
+      });
       const arr = geo.attributes.position.array as Float32Array;
-      for (let i = 0; i < count; i++) {
-        const [sx, sy, sz] = emitters[Math.floor(i / per)];
-        arr[i * 3 + 1] += 0.014 + seed[i] * 0.012;
-        arr[i * 3] += 0.008 + Math.sin(seed[i] * 20 + t * 0.4) * 0.004;
-        if (arr[i * 3 + 1] > sy + 4.2) { arr[i * 3] = sx; arr[i * 3 + 1] = sy; arr[i * 3 + 2] = sz; }
+      for (let ei = 0; ei < emitters.length; ei++) {
+        const e = emitters[ei];
+        const top = e.pos[1] + (e.steam ? 3.0 : 3.6);
+        for (let j = 0; j < per; j++) {
+          const idx = ei * per + j, i3 = idx * 3;
+          arr[i3 + 1] += (e.steam ? 0.011 : 0.015) + seed[idx] * 0.01;
+          arr[i3] += 0.003 + Math.sin(seed[idx] * 20 + t * 0.4) * 0.003;
+          if (arr[i3 + 1] > top) {
+            arr[i3] = e.pos[0] + (Math.random() - 0.5) * e.r * 2;
+            arr[i3 + 1] = e.pos[1];
+            arr[i3 + 2] = e.pos[2] + (Math.random() - 0.5) * e.r * 2;
+          }
+        }
       }
       geo.attributes.position.needsUpdate = true;
-      // Systematic decommissioning: each part retracts down into the ground.
-      parts.forEach(({ g, start }) => {
-        const p = clamp01((t - start) / 0.6);
-        g.scale.y = 1 - p;
-        g.visible = p < 1;
-      });
-      // Slow, smooth pan across the site.
-      scene.rotation.y = Math.sin(t * 0.05) * 0.12;
     }
   };
 }
