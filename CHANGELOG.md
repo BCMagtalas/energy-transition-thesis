@@ -1,5 +1,8 @@
 # Changelog
 
+## v5.8.5 — Thicker turbines, consistent facing
+- Beefed up the wind turbines — wider chunkier blades (fuller chord + more extrude depth), thicker tapered towers, larger nacelles/nose/hub — so they read as substantial machines rather than slender wisps. Also fixed their orientation: instead of scattered yaws (some rotors facing away), all turbines now yaw into the same wind toward the viewer with only a slight per-turbine variation, so the farm reads as a correctly-oriented coordinated array.
+
 ## v5.8.4 — Wind: designer-critique polish pass
 - Acted on a full design/3D critique. (1) Removed the orphaned top-left blade — reworked the layout so every turbine sits fully in frame. (2) Moved the hero turbine to the right so its mast no longer runs through the caption text. (3) Added real lighting: lowered the flat ambient and added a cool rim + soft key so the white turbines get form and crisp edge separation, plus soft ground-contact shadows so they read as planted, not floating. (4) Recoloured the drifting motes and hub energy streams from amber (which read as carbon/embers) to cool mint / pale white for a wind scene, and thinned them so they feel like moving air, not noise. (5) Rebalanced the framing so the hero sits at the vertical centre rather than everything pinned to the bottom. Also nudged bloom down a touch more (0.55→0.5, threshold 0.5→0.52).
 

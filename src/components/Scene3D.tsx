@@ -189,19 +189,19 @@ function darkStage(
   scene.add(floor);
 }
 
-/** Slender tapered airfoil blade with real thickness (root at y=0, tip at y=+L). */
+/** Chunky tapered airfoil blade with real thickness (root at y=0, tip at y=+L). */
 function sleekBladeGeo(): THREE.ExtrudeGeometry {
-  const L = 1.95;
+  const L = 1.85;
   const s = new THREE.Shape();
-  s.moveTo(-0.028, 0);                          // root · leading edge
-  s.lineTo(0.085, 0);                           // root · trailing edge
-  s.quadraticCurveTo(0.03, L * 0.52, 0.005, L); // trailing edge sweeps to a fine tip
-  s.quadraticCurveTo(-0.05, L * 0.5, -0.028, 0); // gently curved leading edge back to root
+  s.moveTo(-0.045, 0);                          // root · leading edge
+  s.lineTo(0.135, 0);                           // root · trailing edge (wider chord)
+  s.quadraticCurveTo(0.05, L * 0.5, 0.012, L);  // trailing edge sweeps to a rounded tip
+  s.quadraticCurveTo(-0.075, L * 0.5, -0.045, 0); // fuller leading edge back to root
   s.closePath();
   const g = new THREE.ExtrudeGeometry(s, {
-    depth: 0.022, bevelEnabled: true, bevelThickness: 0.008, bevelSize: 0.006, bevelSegments: 1, steps: 1
+    depth: 0.042, bevelEnabled: true, bevelThickness: 0.014, bevelSize: 0.012, bevelSegments: 1, steps: 1
   });
-  g.translate(0, 0, -0.011);
+  g.translate(0, 0, -0.021);
   return g;
 }
 
@@ -213,17 +213,17 @@ function wireTurbine(
 ): { turbine: THREE.Group; hub: THREE.Group } {
   const turbine = new THREE.Group();
   const h = 3.4 * s;
-  const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.04 * s, 0.09 * s, h, 16), towerMat);
+  const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.065 * s, 0.13 * s, h, 18), towerMat);
   tower.position.y = h / 2;
-  const nacelle = new THREE.Mesh(new THREE.CapsuleGeometry(0.07 * s, 0.24 * s, 4, 12), towerMat);
+  const nacelle = new THREE.Mesh(new THREE.CapsuleGeometry(0.11 * s, 0.3 * s, 5, 14), towerMat);
   nacelle.rotation.x = Math.PI / 2;               // lay the pod along the wind axis (Z)
-  nacelle.position.set(0, h, -0.05 * s);
+  nacelle.position.set(0, h, -0.06 * s);
   const hub = new THREE.Group();
-  hub.position.set(0, h, 0.12 * s);
-  const nose = new THREE.Mesh(new THREE.ConeGeometry(0.06 * s, 0.14 * s, 14), towerMat);
-  nose.rotation.x = Math.PI / 2; nose.position.z = 0.06 * s;
-  const node = new THREE.Mesh(new THREE.SphereGeometry(0.045 * s, 10, 10), nodeMat);
-  hub.add(nose, node, makeGlow(0xdff2ea, 0.5 * s, textures));   // bright glowing hub
+  hub.position.set(0, h, 0.16 * s);
+  const nose = new THREE.Mesh(new THREE.ConeGeometry(0.1 * s, 0.2 * s, 16), towerMat);
+  nose.rotation.x = Math.PI / 2; nose.position.z = 0.08 * s;
+  const node = new THREE.Mesh(new THREE.SphereGeometry(0.07 * s, 10, 10), nodeMat);
+  hub.add(nose, node, makeGlow(0xdff2ea, 0.55 * s, textures));   // bright glowing hub
   for (let b = 0; b < 3; b++) {
     const blade = new THREE.Mesh(bladeGeo, bladeMat);
     blade.scale.setScalar(s);
@@ -291,22 +291,22 @@ function buildWind(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
     [-1.2, -5.2, 0.6], [-5.6, -5.8, 0.54], [3.0, -7.0, 0.5],
     [-3.2, -8.6, 0.46], [0.6, -9.8, 0.42]
   ];
-  // Distinct yaw per turbine → rotors seen at varied 3/4 angles, so the farm reads as a
-  // 3D volume rather than flat pinwheels all facing the camera.
-  const yaws = [0.5, -0.6, 0.95, -1.05, 0.35, 1.15, -0.8, 0.5];
+  // A real farm all yaws into the same wind — rotors face the viewer with only a slight
+  // per-turbine variation for depth, so none reads as facing the wrong way.
+  const yaws = [0.12, -0.14, 0.1, -0.12, 0.15, -0.1, 0.13, -0.11];
   layout.forEach(([x, z, sc], i) => {
     const { turbine, hub } = wireTurbine(sc, bladeGeo, towerMat, bladeMat, nodeMat, textures);
     turbine.position.set(x, -2, z);
     turbine.rotation.y = yaws[i % yaws.length];
     scene.add(turbine);
     // Soft ground-contact shadow so the turbine reads as planted, not floating.
-    const shadow = new THREE.Mesh(new THREE.PlaneGeometry(1.6 * sc, 1.6 * sc), shadowMat);
+    const shadow = new THREE.Mesh(new THREE.PlaneGeometry(1.7 * sc, 1.7 * sc), shadowMat);
     shadow.rotation.x = -Math.PI / 2;
     shadow.position.set(x, -1.99, z);
     scene.add(shadow);
     hubs.push({ hub, rate: 0.5 + (i % 3) * 0.2 });
     const c = Math.cos(turbine.rotation.y), sn = Math.sin(turbine.rotation.y);
-    hubPos.push(new THREE.Vector3(x + sn * 0.14 * sc, -2 + 3.4 * sc, z + c * 0.14 * sc));
+    hubPos.push(new THREE.Vector3(x + sn * 0.16 * sc, -2 + 3.4 * sc, z + c * 0.16 * sc));
   });
 
   // Energy-flow: gold motes stream off each hub downwind (+x) → "generation", tying
