@@ -1,5 +1,8 @@
 # Changelog
 
+## v5.9.5 — Solar scene centred
+- The solar (04) scene sat left-of-centre: the sun was at x=-1.4 while the camera looked near centre. Moved the sun (and the field/glow/wireframe parented to it) to x=0 and aimed the camera at x=0, tightened the fov (52→50) and eased the orbit (0.18→0.14) so the sun + orbiting panels stay centred in the card.
+
 ## v5.9.4 — Coal: taller plumes to the top + bigger plant
 - Smoke now rises to the top of the frame (smoke rise 5.6→8.5, steam 3.8→5.2, staying visible higher before dissipating), and the plant reads bigger and more imposing: taller chimneys (H ~5–6.4) and a closer, lower camera (z 14→11, look lifted off the floor, fov 56→55) so the facility fills more of the frame.
 

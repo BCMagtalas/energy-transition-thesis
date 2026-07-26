@@ -663,7 +663,7 @@ function buildSolar(scene: THREE.Scene, textures: THREE.Texture[], dir: THREE.Di
 
   // Central sun + soft glow, with a faint wireframe sphere the panels orbit.
   const sunCore = new THREE.Mesh(new THREE.SphereGeometry(0.7, 20, 20), new THREE.MeshBasicMaterial({ color: 0xffd07a }));
-  sunCore.position.set(-1.4, 0.3, -3.5);
+  sunCore.position.set(0, 0.3, -3.5);
   const sunGlow = makeGlow(0xffc45c, 8.5, textures);
   sunGlow.position.copy(sunCore.position);
   scene.add(sunCore, sunGlow);
@@ -717,9 +717,9 @@ function buildSolar(scene: THREE.Scene, textures: THREE.Texture[], dir: THREE.Di
   }
 
   return {
-    cam: { pos: [0, 0.4, 9], look: [-0.4, 0, -1] },
+    cam: { pos: [0, 0.4, 9], look: [0, 0.15, -1], fov: 50 },
     bloom: { strength: 0.55, radius: 0.75, threshold: 0.62 },
-    motion: { orbit: 0.18, dolly: 0.6, rise: 0.16 },
+    motion: { orbit: 0.14, dolly: 0.6, rise: 0.14 },
     update(t) {
       // Each panel tumbles on its own axes and drifts only radially (out/in along
       // its own spoke), so it never crosses a neighbour or the sun.
