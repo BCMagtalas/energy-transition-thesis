@@ -1,5 +1,8 @@
 # Changelog
 
+## v5.9.2 — Coal plumes: volumetric smoke & steam (design-audit fixes)
+- Acted on a design/3D audit of the coal scene. The plumes were the weak point — sparse bright dots reading as "sprinkles." Rebuilt them as two dense, soft, large-sprite plume systems that fade in at the base and dissipate near the top, with a shared wind shear (lean increasing with height) + turbulence so they billow and drift instead of rising dead-vertical. Differentiated the two: cooling towers now vent soft white steam (big, puffy), the chimneys/boiler emit thinner warm carbon haze. Also spaced the four cooling towers apart so their silhouettes read separately, and lifted the scene brightness (ambient 0.5→0.6, key 1.5→1.8, rim 1.4→1.5). Technical audit: 12/12 checks pass, build clean.
+
 ## v5.9.1 — Coal plant reshaped after a real coal-station reference
 - Rebuilt the plant's shape/components to match a real coal station (per a supplied photo) while keeping our dark warm-lit theme: a row of four hyperboloid cooling towers venting white steam, four tall banded chimneys (light bands like the reference, taller than the towers, with red beacons) trailing carbon smoke, and a detailed multi-block boiler house on the right (stepped concrete blocks + steel silos + a chimney). All on one concrete pad, linked by steel pipes, with contact shadows and the same rim/key lighting. Wider pulled-back framing to take in the full row; composition sits centre-right leaving the lower-left clear for the caption.
 

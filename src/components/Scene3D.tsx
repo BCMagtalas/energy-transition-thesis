@@ -409,9 +409,9 @@ function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
   starField(scene, textures, 150, 0xe8c99a);
 
   // Sculpting light: low ambient + a warm furnace key and a cool rim for edge separation.
-  scene.traverse(o => { if (o instanceof THREE.AmbientLight) o.intensity = 0.5; });
-  const key = new THREE.DirectionalLight(0xffd39a, 1.5); key.position.set(5, 7, 6); scene.add(key);
-  const rim = new THREE.DirectionalLight(0xbfe0ff, 1.4); rim.position.set(-4, 6, -11); scene.add(rim);
+  scene.traverse(o => { if (o instanceof THREE.AmbientLight) o.intensity = 0.6; });
+  const key = new THREE.DirectionalLight(0xffd39a, 1.8); key.position.set(5, 7, 6); scene.add(key);
+  const rim = new THREE.DirectionalLight(0xbfe0ff, 1.5); rim.position.set(-4, 6, -11); scene.add(rim);
 
   // Solid industrial materials (low metalness — no env map — so they read as lit concrete/steel).
   const concrete = new THREE.MeshStandardMaterial({ color: 0xb6b0a3, roughness: 0.92, metalness: 0.04, side: THREE.DoubleSide });
@@ -451,10 +451,10 @@ function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
     contactShadow(x, z, 1.15 * s);
     emitters.push({ pos: [x, -2 + 2.6 * s, z], r: 0.34 * s, rate: 0.011, steam: true });
   };
-  coolTower(-5.7, -3.5, 1.12);
-  coolTower(-4.3, -3.1, 1.22);
-  coolTower(-2.9, -2.9, 1.16);
-  coolTower(-1.5, -3.1, 1.06);
+  coolTower(-6.4, -3.6, 1.12);
+  coolTower(-4.6, -3.0, 1.22);
+  coolTower(-2.8, -3.3, 1.16);
+  coolTower(-1.0, -2.9, 1.06);
 
   // Tall banded chimneys (light bands, like the reference) with blinking beacons + carbon smoke.
   const bandedStack = (x: number, z: number, s: number, H: number, bi: number) => {
@@ -511,35 +511,60 @@ function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
   pipe(new THREE.Vector3(-1.1, -1.5, -2.9), new THREE.Vector3(0.0, -1.5, -2.7), 0.09);  // towers → stacks
   pipe(new THREE.Vector3(3.2, -1.5, -2.8), new THREE.Vector3(4.4, -1.5, -2.6), 0.1);    // stacks → boiler
 
-  // Rising plumes — white steam from the cooling towers, warm carbon smoke from the stacks/boiler.
-  const per = 150;
-  const count = emitters.length * per;
-  const RISE = 4.3;
-  const geo = new THREE.BufferGeometry();
-  const pos = new Float32Array(count * 3);
-  const col = new Float32Array(count * 3);
-  const seed = new Float32Array(count);
-  const steamC = [0.82, 0.87, 0.9], smokeC = [0.66, 0.42, 0.22], ember = [0.96, 0.62, 0.26];
-  emitters.forEach((e, ei) => {
-    for (let j = 0; j < per; j++) {
-      const idx = ei * per + j, i3 = idx * 3;
-      const h0 = Math.random() * RISE;
-      const spread = e.r * (1 + h0 * 0.55);
-      pos[i3] = e.pos[0] + (Math.random() - 0.5) * spread;
-      pos[i3 + 1] = e.pos[1] + h0;
-      pos[i3 + 2] = e.pos[2] + (Math.random() - 0.5) * spread;
-      const c = e.steam ? steamC : (j % 4 === 0 ? ember : smokeC);
-      col[i3] = c[0]; col[i3 + 1] = c[1]; col[i3 + 2] = c[2];
-      seed[idx] = Math.random();
+  // Volumetric plumes: dense, soft, wind-drifted columns that fade as they rise & shear —
+  // glowing white steam from the cooling towers, warm carbon haze from the stacks/boiler.
+  const makePlume = (
+    ems: Emitter[], baseCol: [number, number, number],
+    size: number, per: number, rise: number, riseSpeed: number, drift: number, op: number
+  ) => {
+    const n = ems.length * per;
+    const geo = new THREE.BufferGeometry();
+    const pos = new Float32Array(n * 3), col = new Float32Array(n * 3), seed = new Float32Array(n);
+    for (let k = 0; k < ems.length; k++) {
+      const e = ems[k];
+      for (let j = 0; j < per; j++) {
+        const i = k * per + j, i3 = i * 3;
+        const h0 = Math.random() * rise;
+        const sp = e.r * (1 + h0 * 0.6);
+        pos[i3] = e.pos[0] + (Math.random() - 0.5) * sp;
+        pos[i3 + 1] = e.pos[1] + h0;
+        pos[i3 + 2] = e.pos[2] + (Math.random() - 0.5) * sp;
+        seed[i] = Math.random();
+      }
     }
-  });
-  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
-  const moteMat = new THREE.PointsMaterial({
-    size: 0.1, map: dotTexture(textures), vertexColors: true, transparent: true,
-    opacity: 0.6, blending: THREE.AdditiveBlending, depthWrite: false
-  });
-  scene.add(new THREE.Points(geo, moteMat));
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    const mat = new THREE.PointsMaterial({
+      size, map: dotTexture(textures), vertexColors: true, transparent: true,
+      opacity: op, blending: THREE.AdditiveBlending, depthWrite: false
+    });
+    scene.add(new THREE.Points(geo, mat));
+    return (t: number) => {
+      const p = geo.attributes.position.array as Float32Array;
+      const c = geo.attributes.color.array as Float32Array;
+      for (let k = 0; k < ems.length; k++) {
+        const e = ems[k]; const top = e.pos[1] + rise;
+        for (let j = 0; j < per; j++) {
+          const i = k * per + j, i3 = i * 3;
+          p[i3 + 1] += riseSpeed + seed[i] * riseSpeed * 0.5;
+          const f = (p[i3 + 1] - e.pos[1]) / rise;                        // 0 at base → 1 at top
+          p[i3] += drift * (0.15 + f) * 0.01 + Math.sin(seed[i] * 30 + t * 0.5) * 0.004; // wind shear + turbulence
+          p[i3 + 2] += Math.cos(seed[i] * 24 + t * 0.4) * 0.003;
+          const fade = Math.min(1, f * 5) * Math.max(0, 1 - f * 0.95);    // fade in fast, dissipate near the top
+          c[i3] = baseCol[0] * fade; c[i3 + 1] = baseCol[1] * fade; c[i3 + 2] = baseCol[2] * fade;
+          if (p[i3 + 1] > top) {
+            p[i3] = e.pos[0] + (Math.random() - 0.5) * e.r;
+            p[i3 + 1] = e.pos[1];
+            p[i3 + 2] = e.pos[2] + (Math.random() - 0.5) * e.r;
+          }
+        }
+      }
+      geo.attributes.position.needsUpdate = true;
+      geo.attributes.color.needsUpdate = true;
+    };
+  };
+  const steamPlume = makePlume(emitters.filter(e => e.steam), [0.86, 0.9, 0.93], 0.42, 300, 3.0, 0.011, 0.5, 0.38);
+  const smokePlume = makePlume(emitters.filter(e => !e.steam), [0.82, 0.52, 0.28], 0.3, 240, 4.6, 0.016, 1.4, 0.42);
 
   return {
     cam: { pos: [0.4, 2.5, 14], look: [0.4, 1.7, -3], fov: 56 },
@@ -552,22 +577,8 @@ function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
         o.mat.opacity = v;
         (o.glow.material as THREE.SpriteMaterial).opacity = v;
       });
-      const arr = geo.attributes.position.array as Float32Array;
-      for (let ei = 0; ei < emitters.length; ei++) {
-        const e = emitters[ei];
-        const top = e.pos[1] + RISE;
-        for (let j = 0; j < per; j++) {
-          const idx = ei * per + j, i3 = idx * 3;
-          arr[i3 + 1] += e.rate + seed[idx] * 0.008;
-          arr[i3] += Math.sin(seed[idx] * 20 + t * 0.4) * 0.0022;
-          if (arr[i3 + 1] > top) {
-            arr[i3] = e.pos[0] + (Math.random() - 0.5) * e.r;
-            arr[i3 + 1] = e.pos[1];
-            arr[i3 + 2] = e.pos[2] + (Math.random() - 0.5) * e.r;
-          }
-        }
-      }
-      geo.attributes.position.needsUpdate = true;
+      steamPlume(t);
+      smokePlume(t);
     }
   };
 }
