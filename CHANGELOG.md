@@ -1,5 +1,8 @@
 # Changelog
 
+## v5.8.2 — White, sleeker realistic wind turbines
+- Per request, recoloured and redesigned the turbines: from mint wireframe ribbons to solid **white/silver** realistic turbines that glow against the emerald night. Slender extruded airfoil blades (real thickness, fine tapered tip), a capsule nacelle, a coned nose, a clean tapered tower, and a bright glowing white hub. Materials are MeshStandard with low metalness (no environment map in-scene) so they read bright white rather than going dark, with a faint emissive so the blades bloom softly. Coal plant unchanged.
+
 ## v5.8.1 — Real 3D depth in wind & coal
 - The structures read flat because rotors faced the camera (2D pinwheels) and the coal plant was viewed head-on. Gave each turbine a distinct yaw so its rotor is seen at a varied 3/4 angle (genuine 3D volume), swung the coal camera to a 3/4 vantage so the round cooling towers, multi-faced boiler, and receding stacks show their depth, and increased the camera orbit on both (wind 0.08→0.16, coal 0.10→0.18) so the parallax reveals the three-dimensionality as it moves.
 

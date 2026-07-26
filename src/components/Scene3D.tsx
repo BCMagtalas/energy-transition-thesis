@@ -173,44 +173,51 @@ function darkStage(
   scene.add(floor);
 }
 
-/** Flat tapered blade outline (root at y=0, tip at y=+L) — filled as a glowing ribbon. */
-function bladeShape(): THREE.Shape {
-  const L = 1.7;
+/** Slender tapered airfoil blade with real thickness (root at y=0, tip at y=+L). */
+function sleekBladeGeo(): THREE.ExtrudeGeometry {
+  const L = 1.95;
   const s = new THREE.Shape();
-  s.moveTo(-0.035, 0);                        // root · leading edge
-  s.lineTo(0.115, 0);                         // root · trailing edge (visible chord)
-  s.quadraticCurveTo(0.06, L * 0.55, 0.012, L); // trailing edge sweeps to a fine tip
-  s.quadraticCurveTo(-0.05, L * 0.55, -0.035, 0); // leading edge back to root
+  s.moveTo(-0.028, 0);                          // root · leading edge
+  s.lineTo(0.085, 0);                           // root · trailing edge
+  s.quadraticCurveTo(0.03, L * 0.52, 0.005, L); // trailing edge sweeps to a fine tip
+  s.quadraticCurveTo(-0.05, L * 0.5, -0.028, 0); // gently curved leading edge back to root
   s.closePath();
-  return s;
+  const g = new THREE.ExtrudeGeometry(s, {
+    depth: 0.022, bevelEnabled: true, bevelThickness: 0.008, bevelSize: 0.006, bevelSegments: 1, steps: 1
+  });
+  g.translate(0, 0, -0.011);
+  return g;
 }
 
-/** Wireframe turbine: wire tower, solid nacelle pod, bright hub node, glowing ribbon blades. */
+/** Sleek realistic white turbine: tapered tower, capsule nacelle, coned nose, airfoil blades. */
 function wireTurbine(
-  s: number, bladeFill: THREE.BufferGeometry, bladeEdge: THREE.BufferGeometry,
-  lineMat: THREE.Material, fillMat: THREE.Material, podMat: THREE.Material,
-  nodeMat: THREE.Material, textures: THREE.Texture[]
+  s: number, bladeGeo: THREE.BufferGeometry,
+  towerMat: THREE.Material, bladeMat: THREE.Material, nodeMat: THREE.Material,
+  textures: THREE.Texture[]
 ): { turbine: THREE.Group; hub: THREE.Group } {
   const turbine = new THREE.Group();
   const h = 3.4 * s;
-  const tower = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.CylinderGeometry(0.045 * s, 0.11 * s, h, 6)), lineMat);
+  const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.04 * s, 0.09 * s, h, 16), towerMat);
   tower.position.y = h / 2;
-  // Solid little pod (not a wire crate) so the hub reads as a nacelle with mass.
-  const pod = new THREE.Mesh(new THREE.BoxGeometry(0.3 * s, 0.16 * s, 0.16 * s), podMat);
-  pod.position.set(0, h, -0.03 * s);
+  const nacelle = new THREE.Mesh(new THREE.CapsuleGeometry(0.07 * s, 0.24 * s, 4, 12), towerMat);
+  nacelle.rotation.x = Math.PI / 2;               // lay the pod along the wind axis (Z)
+  nacelle.position.set(0, h, -0.05 * s);
   const hub = new THREE.Group();
   hub.position.set(0, h, 0.12 * s);
-  const node = new THREE.Mesh(new THREE.SphereGeometry(0.05 * s, 10, 10), nodeMat);
-  hub.add(node, makeGlow(MINT, 0.4 * s, textures));
+  const nose = new THREE.Mesh(new THREE.ConeGeometry(0.06 * s, 0.14 * s, 14), towerMat);
+  nose.rotation.x = Math.PI / 2; nose.position.z = 0.06 * s;
+  const node = new THREE.Mesh(new THREE.SphereGeometry(0.045 * s, 10, 10), nodeMat);
+  hub.add(nose, node, makeGlow(0xdff2ea, 0.5 * s, textures));   // bright glowing hub
   for (let b = 0; b < 3; b++) {
-    const fill = new THREE.Mesh(bladeFill, fillMat); fill.scale.setScalar(s);
-    const edge = new THREE.LineSegments(bladeEdge, lineMat); edge.scale.setScalar(s);
+    const blade = new THREE.Mesh(bladeGeo, bladeMat);
+    blade.scale.setScalar(s);
+    blade.rotation.y = 0.2;                        // aerodynamic pitch/twist
     const hold = new THREE.Group();
     hold.rotation.z = (b * Math.PI * 2) / 3;
-    hold.add(fill, edge);
+    hold.add(blade);
     hub.add(hold);
   }
-  turbine.add(tower, pod, hub);
+  turbine.add(tower, nacelle, hub);
   return { turbine, hub };
 }
 
@@ -245,12 +252,12 @@ function buildWind(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
   scene.add(horizon);
   starField(scene, textures, 220, 0xbfeadd);
 
-  const lineMat = new THREE.LineBasicMaterial({ color: MINT, transparent: true, opacity: 0.72 });
-  const fillMat = new THREE.MeshBasicMaterial({ color: MINT, transparent: true, opacity: 0.18, side: THREE.DoubleSide, depthWrite: false });
-  const podMat = new THREE.MeshBasicMaterial({ color: 0x0a3728 });
-  const nodeMat = new THREE.MeshBasicMaterial({ color: 0xbdf5dc });
-  const bladeFill = new THREE.ShapeGeometry(bladeShape());
-  const bladeEdge = new THREE.EdgesGeometry(bladeFill);
+  // White / silver realistic turbines that glow against the emerald night. Low metalness
+  // (no environment map in the scene) keeps them bright white rather than going dark.
+  const towerMat = new THREE.MeshStandardMaterial({ color: 0xeaf0f1, roughness: 0.5, metalness: 0.1 });
+  const bladeMat = new THREE.MeshStandardMaterial({ color: 0xf5f9f9, roughness: 0.4, metalness: 0.06, emissive: 0x8fb8bd, emissiveIntensity: 0.2 });
+  const nodeMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  const bladeGeo = sleekBladeGeo();
 
   const hubs: { hub: THREE.Group; rate: number }[] = [];
   const hubPos: THREE.Vector3[] = [];
@@ -265,7 +272,7 @@ function buildWind(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
   // 3D volume rather than flat pinwheels all facing the camera.
   const yaws = [0.55, -0.6, 0.95, -1.05, 0.35, 1.15, -0.8, 0.5];
   layout.forEach(([x, z, sc], i) => {
-    const { turbine, hub } = wireTurbine(sc, bladeFill, bladeEdge, lineMat, fillMat, podMat, nodeMat, textures);
+    const { turbine, hub } = wireTurbine(sc, bladeGeo, towerMat, bladeMat, nodeMat, textures);
     turbine.position.set(x, -2, z);
     turbine.rotation.y = yaws[i % yaws.length];
     scene.add(turbine);
