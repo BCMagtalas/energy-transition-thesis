@@ -1,5 +1,8 @@
 # Changelog
 
+## v5.9.4 — Coal: taller plumes to the top + bigger plant
+- Smoke now rises to the top of the frame (smoke rise 5.6→8.5, steam 3.8→5.2, staying visible higher before dissipating), and the plant reads bigger and more imposing: taller chimneys (H ~5–6.4) and a closer, lower camera (z 14→11, look lifted off the floor, fov 56→55) so the facility fills more of the frame.
+
 ## v5.9.3 — Coal plumes: no more clipped tops
 - The plumes ended in a hard "cut" — particles were still ~5% visible when they hit the reset height and snapped back, leaving a ragged clipped edge. Reworked the fade so each column is fully transparent well before the reset point (fade to 0 by ~80% of its travel), and raised the rise heights (steam 3.0→3.8, smoke 4.6→5.6) with slightly less horizontal shear, so the plumes taper and dissipate into nothing instead of being clipped.
 

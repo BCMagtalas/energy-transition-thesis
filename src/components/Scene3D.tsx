@@ -479,10 +479,10 @@ function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
     beacons.push({ mat: bMat, glow: bGlow, phase: bi * 1.7 });
     emitters.push({ pos: [x, topY, z], r: 0.1 * s, rate: 0.018, steam: false });
   };
-  bandedStack(0.2, -2.7, 1.0, 4.7, 0);
-  bandedStack(1.1, -3.0, 0.95, 5.1, 1);
-  bandedStack(2.0, -2.7, 0.9, 4.3, 2);
-  bandedStack(2.9, -3.0, 0.85, 4.0, 3);
+  bandedStack(0.2, -2.7, 1.05, 5.8, 0);
+  bandedStack(1.1, -3.0, 1.0, 6.4, 1);
+  bandedStack(2.0, -2.7, 0.95, 5.4, 2);
+  bandedStack(2.9, -3.0, 0.9, 5.0, 3);
 
   // Detailed multi-block boiler house complex on the right.
   const bldg = new THREE.Group();
@@ -550,7 +550,7 @@ function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
           const f = (p[i3 + 1] - e.pos[1]) / rise;                        // 0 at base → 1 at top
           p[i3] += drift * (0.15 + f) * 0.01 + Math.sin(seed[i] * 30 + t * 0.5) * 0.004; // wind shear + turbulence
           p[i3 + 2] += Math.cos(seed[i] * 24 + t * 0.4) * 0.003;
-          const fade = Math.min(1, f * 4) * Math.max(0, 1 - f * 1.28);    // fade in fast, fully gone before the reset (no cut-off seam)
+          const fade = Math.min(1, f * 3.5) * Math.max(0, 1 - f * 1.12);  // fade in fast, stay visible high, gone just before reset
           c[i3] = baseCol[0] * fade; c[i3 + 1] = baseCol[1] * fade; c[i3 + 2] = baseCol[2] * fade;
           if (p[i3 + 1] > top) {
             p[i3] = e.pos[0] + (Math.random() - 0.5) * e.r;
@@ -563,11 +563,11 @@ function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
       geo.attributes.color.needsUpdate = true;
     };
   };
-  const steamPlume = makePlume(emitters.filter(e => e.steam), [0.86, 0.9, 0.93], 0.42, 300, 3.8, 0.011, 0.4, 0.38);
-  const smokePlume = makePlume(emitters.filter(e => !e.steam), [0.82, 0.52, 0.28], 0.3, 240, 5.6, 0.016, 1.0, 0.42);
+  const steamPlume = makePlume(emitters.filter(e => e.steam), [0.86, 0.9, 0.93], 0.42, 320, 5.2, 0.013, 0.4, 0.38);
+  const smokePlume = makePlume(emitters.filter(e => !e.steam), [0.82, 0.52, 0.28], 0.3, 300, 8.5, 0.02, 0.9, 0.42);
 
   return {
-    cam: { pos: [0.4, 2.5, 14], look: [0.4, 1.7, -3], fov: 56 },
+    cam: { pos: [0.6, 2.0, 11], look: [0.6, 1.3, -3], fov: 55 },
     bloom: { strength: 0.5, radius: 0.7, threshold: 0.5 },
     motion: { orbit: 0.1, dolly: 0.9, rise: 0.14 },
     update(t) {
