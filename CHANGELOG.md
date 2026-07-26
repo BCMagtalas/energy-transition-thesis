@@ -1,5 +1,8 @@
 # Changelog
 
+## v5.9.3 — Coal plumes: no more clipped tops
+- The plumes ended in a hard "cut" — particles were still ~5% visible when they hit the reset height and snapped back, leaving a ragged clipped edge. Reworked the fade so each column is fully transparent well before the reset point (fade to 0 by ~80% of its travel), and raised the rise heights (steam 3.0→3.8, smoke 4.6→5.6) with slightly less horizontal shear, so the plumes taper and dissipate into nothing instead of being clipped.
+
 ## v5.9.2 — Coal plumes: volumetric smoke & steam (design-audit fixes)
 - Acted on a design/3D audit of the coal scene. The plumes were the weak point — sparse bright dots reading as "sprinkles." Rebuilt them as two dense, soft, large-sprite plume systems that fade in at the base and dissipate near the top, with a shared wind shear (lean increasing with height) + turbulence so they billow and drift instead of rising dead-vertical. Differentiated the two: cooling towers now vent soft white steam (big, puffy), the chimneys/boiler emit thinner warm carbon haze. Also spaced the four cooling towers apart so their silhouettes read separately, and lifted the scene brightness (ambient 0.5→0.6, key 1.5→1.8, rim 1.4→1.5). Technical audit: 12/12 checks pass, build clean.
 

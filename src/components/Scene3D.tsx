@@ -550,7 +550,7 @@ function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
           const f = (p[i3 + 1] - e.pos[1]) / rise;                        // 0 at base → 1 at top
           p[i3] += drift * (0.15 + f) * 0.01 + Math.sin(seed[i] * 30 + t * 0.5) * 0.004; // wind shear + turbulence
           p[i3 + 2] += Math.cos(seed[i] * 24 + t * 0.4) * 0.003;
-          const fade = Math.min(1, f * 5) * Math.max(0, 1 - f * 0.95);    // fade in fast, dissipate near the top
+          const fade = Math.min(1, f * 4) * Math.max(0, 1 - f * 1.28);    // fade in fast, fully gone before the reset (no cut-off seam)
           c[i3] = baseCol[0] * fade; c[i3 + 1] = baseCol[1] * fade; c[i3 + 2] = baseCol[2] * fade;
           if (p[i3 + 1] > top) {
             p[i3] = e.pos[0] + (Math.random() - 0.5) * e.r;
@@ -563,8 +563,8 @@ function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
       geo.attributes.color.needsUpdate = true;
     };
   };
-  const steamPlume = makePlume(emitters.filter(e => e.steam), [0.86, 0.9, 0.93], 0.42, 300, 3.0, 0.011, 0.5, 0.38);
-  const smokePlume = makePlume(emitters.filter(e => !e.steam), [0.82, 0.52, 0.28], 0.3, 240, 4.6, 0.016, 1.4, 0.42);
+  const steamPlume = makePlume(emitters.filter(e => e.steam), [0.86, 0.9, 0.93], 0.42, 300, 3.8, 0.011, 0.4, 0.38);
+  const smokePlume = makePlume(emitters.filter(e => !e.steam), [0.82, 0.52, 0.28], 0.3, 240, 5.6, 0.016, 1.0, 0.42);
 
   return {
     cam: { pos: [0.4, 2.5, 14], look: [0.4, 1.7, -3], fov: 56 },
