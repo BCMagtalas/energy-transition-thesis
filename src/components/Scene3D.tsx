@@ -558,9 +558,9 @@ function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
     varying float vA;
     void main() {
       float d = length(gl_PointCoord - 0.5);
-      float soft = smoothstep(0.5, 0.03, d);
+      float soft = smoothstep(0.5, 0.0, d);            // very soft edge so overlaps blend into haze
       float a = soft * vA * uOpacity;
-      if (a < 0.004) discard;
+      if (a < 0.003) discard;
       gl_FragColor = vec4(uColor, a);
     }`;
   const makePlume = (
@@ -616,8 +616,8 @@ function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
       geo.attributes.position.needsUpdate = true;
     };
   };
-  const steamPlume = makePlume(emitters.filter(e => e.steam), [0.88, 0.92, 0.96], 0.9, 360, 5.2, 0.013, 0.4, 0.5, 1.8, true);
-  const smokePlume = makePlume(emitters.filter(e => !e.steam), [0.46, 0.4, 0.34], 0.95, 420, 8.5, 0.02, 0.9, 0.85, 2.2, false);
+  const steamPlume = makePlume(emitters.filter(e => e.steam), [0.92, 0.94, 0.97], 0.62, 820, 5.0, 0.013, 0.4, 0.14, 1.5, false);
+  const smokePlume = makePlume(emitters.filter(e => !e.steam), [0.5, 0.44, 0.38], 0.64, 920, 8.5, 0.02, 0.9, 0.16, 1.7, false);
 
   return {
     cam: { pos: [0.6, 2.0, 11], look: [0.6, 1.3, -3], fov: 55 },

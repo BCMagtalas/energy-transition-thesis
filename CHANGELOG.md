@@ -1,5 +1,8 @@
 # Changelog
 
+## v5.10.1 — Coal smoke: tune out the popcorn/blowout
+- The v5.10.0 shader made particles too large + opaque (and steam was additive), so plumes read as fluffy popcorn blobs and the steam blew out to solid white. Retuned to the volumetric sweet spot: switched steam to normal blending (no additive blowout), and used large but very low-opacity soft particles in far greater numbers (per 360→820 steam / 420→920 smoke, opacity ~0.5→0.15, grow reduced) so overlaps build smooth continuous haze instead of discrete puffs. Plumes now read as soft wispy steam/smoke columns.
+
 ## v5.10.0 — Coal: volumetric shader smoke + weathered concrete
 - Real Three.js upgrade (not anime.js — that's a DOM/value library and can't touch WebGL rendering). (1) Replaced the plume PointsMaterial with a custom point ShaderMaterial: each particle now grows as it rises and fades with true alpha as a soft round sprite, so the columns billow volumetrically instead of reading as clumps of dots — steam (additive white) from the cooling towers, carbon smoke (normal-blended grey-brown) from the stacks/boiler. (2) Added a procedural weathered-concrete texture (faint construction rings + vertical weathering streaks) on the cooling towers and boiler house, so they read as real concrete rather than flat clay. Custom shader compiles clean; build + audit pass.
 
