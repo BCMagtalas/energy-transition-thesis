@@ -1,5 +1,8 @@
 # Changelog
 
+## v5.9.0 — Coal plant redesigned to match the wind scene's standard
+- Rebuilt scene 02 from wireframe to a solid, realistically-lit industrial plant, so 01 (clean) and 02 (dirty) are a matched pair. Solid concrete hyperboloid cooling towers (a hero pair with real shaded form), a solid stepped boiler house with a steel vent, solid steel smokestacks with red hazard bands + blinking beacons, all sitting on a concrete foundation pad and joined by steel pipes. Same premium lighting as wind — lowered ambient + a warm furnace key + a cool rim for edge separation — plus soft ground-contact shadows so nothing floats. Plumes now split correctly: white steam from the cooling towers, warm carbon smoke (with ember flecks) from the stacks and boiler. Full-facility framing pulled back with a dominant hero tower, tamed bloom (matches wind), warm-industrial palette contrasting wind's cool green.
+
 ## v5.8.5 — Thicker turbines, consistent facing
 - Beefed up the wind turbines — wider chunkier blades (fuller chord + more extrude depth), thicker tapered towers, larger nacelles/nose/hub — so they read as substantial machines rather than slender wisps. Also fixed their orientation: instead of scattered yaws (some rotors facing away), all turbines now yaw into the same wind toward the viewer with only a slight per-turbine variation, so the farm reads as a correctly-oriented coordinated array.
 
