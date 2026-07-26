@@ -1,5 +1,8 @@
 # Changelog
 
+## v5.8.4 — Wind: designer-critique polish pass
+- Acted on a full design/3D critique. (1) Removed the orphaned top-left blade — reworked the layout so every turbine sits fully in frame. (2) Moved the hero turbine to the right so its mast no longer runs through the caption text. (3) Added real lighting: lowered the flat ambient and added a cool rim + soft key so the white turbines get form and crisp edge separation, plus soft ground-contact shadows so they read as planted, not floating. (4) Recoloured the drifting motes and hub energy streams from amber (which read as carbon/embers) to cool mint / pale white for a wind scene, and thinned them so they feel like moving air, not noise. (5) Rebalanced the framing so the hero sits at the vertical centre rather than everything pinned to the bottom. Also nudged bloom down a touch more (0.55→0.5, threshold 0.5→0.52).
+
 ## v5.8.3 — Wind: full-farm framing + tamed glow
 - Pulled the wind camera back and up and narrowed the FOV (62°→52°) so the whole farm is visible with full turbines (base to blade-tip) and one clear hero turbine dominating centre-front, the rest spread out and receding. Eased the motion (less orbit/dolly) to keep the wide view steady. Tamed the glow that was blowing out the white turbines: bloom strength 0.8→0.55 and threshold 0.35→0.5, blade emissive 0.2→0.06, and toned the whites a touch — the turbines now read clean white/silver with only the hub glowing.
 

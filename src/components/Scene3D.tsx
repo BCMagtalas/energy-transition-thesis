@@ -130,6 +130,22 @@ function makeSoftGlow(color: number, scale: number, textures: THREE.Texture[]): 
   return s;
 }
 
+/** Soft radial dark blob for fake ground-contact shadows under objects. */
+function shadowBlobTexture(textures: THREE.Texture[]): THREE.CanvasTexture {
+  const c = document.createElement('canvas');
+  c.width = c.height = 128;
+  const g = c.getContext('2d')!;
+  const grad = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+  grad.addColorStop(0, 'rgba(0,0,0,0.55)');
+  grad.addColorStop(0.5, 'rgba(0,0,0,0.22)');
+  grad.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 128, 128);
+  const t = new THREE.CanvasTexture(c);
+  textures.push(t);
+  return t;
+}
+
 /** Distant faint starfield across the upper-back volume — atmospheric depth for the ground scenes. */
 function starField(scene: THREE.Scene, textures: THREE.Texture[], count: number, color: number): void {
   const g = new THREE.BufferGeometry();
@@ -252,30 +268,42 @@ function buildWind(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
   scene.add(horizon);
   starField(scene, textures, 220, 0xbfeadd);
 
+  // Sculpting light: lower the flat ambient and add a cool rim from behind + a soft key,
+  // so the white turbines get real form and edge separation (premium render, not clay).
+  scene.traverse(o => { if (o instanceof THREE.AmbientLight) o.intensity = 0.5; });
+  const rim = new THREE.DirectionalLight(0xd6f0ff, 2.4); rim.position.set(-3, 7, -12); scene.add(rim);
+  const key = new THREE.DirectionalLight(0xfff4e6, 0.9); key.position.set(7, 6, 6); scene.add(key);
+  const shadowMat = new THREE.MeshBasicMaterial({ map: shadowBlobTexture(textures), transparent: true, opacity: 0.55, depthWrite: false });
+
   // White / silver realistic turbines. Low metalness (no environment map in the scene)
   // keeps them bright white; a faint emissive gives a hint of glow without blowing out.
-  const towerMat = new THREE.MeshStandardMaterial({ color: 0xd8e0e2, roughness: 0.55, metalness: 0.1 });
-  const bladeMat = new THREE.MeshStandardMaterial({ color: 0xe6eded, roughness: 0.45, metalness: 0.06, emissive: 0x6f9498, emissiveIntensity: 0.06 });
+  const towerMat = new THREE.MeshStandardMaterial({ color: 0xe6edee, roughness: 0.5, metalness: 0.12 });
+  const bladeMat = new THREE.MeshStandardMaterial({ color: 0xf0f4f4, roughness: 0.4, metalness: 0.08, emissive: 0x6f9498, emissiveIntensity: 0.05 });
   const nodeMat = new THREE.MeshBasicMaterial({ color: 0xeaf6f2 });
   const bladeGeo = sleekBladeGeo();
 
   const hubs: { hub: THREE.Group; rate: number }[] = [];
   const hubPos: THREE.Vector3[] = [];
-  // One hero turbine up front (centre-left), with the rest of the farm spread out and
-  // receding — the camera sits back so the whole farm reads with the hero dominant.
+  // Hero turbine up front on the RIGHT (clear of the caption column), the rest spread out
+  // and receding — every turbine sits fully in frame (no orphaned blades sweeping a corner).
   const layout: [number, number, number][] = [
-    [-0.6, -1.0, 1.5], [3.6, -2.6, 0.85], [-4.0, -3.0, 0.8],
-    [2.0, -5.4, 0.6], [-2.4, -6.0, 0.56], [5.6, -7.6, 0.5],
-    [-6.0, -8.2, 0.5], [0.6, -9.6, 0.44]
+    [1.9, -0.9, 1.55], [-3.4, -2.6, 0.82], [4.8, -3.4, 0.72],
+    [-1.2, -5.2, 0.6], [-5.6, -5.8, 0.54], [3.0, -7.0, 0.5],
+    [-3.2, -8.6, 0.46], [0.6, -9.8, 0.42]
   ];
   // Distinct yaw per turbine → rotors seen at varied 3/4 angles, so the farm reads as a
   // 3D volume rather than flat pinwheels all facing the camera.
-  const yaws = [0.55, -0.6, 0.95, -1.05, 0.35, 1.15, -0.8, 0.5];
+  const yaws = [0.5, -0.6, 0.95, -1.05, 0.35, 1.15, -0.8, 0.5];
   layout.forEach(([x, z, sc], i) => {
     const { turbine, hub } = wireTurbine(sc, bladeGeo, towerMat, bladeMat, nodeMat, textures);
     turbine.position.set(x, -2, z);
     turbine.rotation.y = yaws[i % yaws.length];
     scene.add(turbine);
+    // Soft ground-contact shadow so the turbine reads as planted, not floating.
+    const shadow = new THREE.Mesh(new THREE.PlaneGeometry(1.6 * sc, 1.6 * sc), shadowMat);
+    shadow.rotation.x = -Math.PI / 2;
+    shadow.position.set(x, -1.99, z);
+    scene.add(shadow);
     hubs.push({ hub, rate: 0.5 + (i % 3) * 0.2 });
     const c = Math.cos(turbine.rotation.y), sn = Math.sin(turbine.rotation.y);
     hubPos.push(new THREE.Vector3(x + sn * 0.14 * sc, -2 + 3.4 * sc, z + c * 0.14 * sc));
@@ -300,12 +328,13 @@ function buildWind(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
   });
   sGeo.setAttribute('position', new THREE.BufferAttribute(sPos, 3));
   const streamMat = new THREE.PointsMaterial({
-    color: GOLD, size: 0.085, map: dotTexture(textures), transparent: true,
-    opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false
+    color: 0xbfeef0, size: 0.08, map: dotTexture(textures), transparent: true,   // cool wind-current colour
+    opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false
   });
   scene.add(new THREE.Points(sGeo, streamMat));
 
-  // Drifting "wind" motes (mint + gold) streaming left-to-right — the particle/traveler motif.
+  // Drifting air motes in cool mint / pale white — reads as moving air on a wind scene,
+  // and thinned so they feel atmospheric rather than like scattered noise.
   const mote = (n: number, color: number, size: number, speed: number) => {
     const geo = new THREE.BufferGeometry();
     const pos = new Float32Array(n * 3);
@@ -318,17 +347,17 @@ function buildWind(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
     }
     geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     scene.add(new THREE.Points(geo, new THREE.PointsMaterial({
-      color, size, map: dotTexture(textures), transparent: true, opacity: 0.75,
+      color, size, map: dotTexture(textures), transparent: true, opacity: 0.6,
       blending: THREE.AdditiveBlending, depthWrite: false
     })));
     return { geo, seed, n, speed };
   };
-  const fields = [mote(250, MINT, 0.08, 0.03), mote(120, GOLD, 0.065, 0.045)];
+  const fields = [mote(160, MINT, 0.07, 0.03), mote(70, 0xd6efe8, 0.055, 0.045)];
 
   return {
-    cam: { pos: [0, 2.4, 11.5], look: [0, 1.6, -5], fov: 52 },
-    bloom: { strength: 0.55, radius: 0.7, threshold: 0.5 },
-    motion: { orbit: 0.12, dolly: 0.9, rise: 0.15 },
+    cam: { pos: [0.4, 2.1, 11.5], look: [0.6, 1.4, -5], fov: 52 },
+    bloom: { strength: 0.5, radius: 0.7, threshold: 0.52 },
+    motion: { orbit: 0.11, dolly: 0.9, rise: 0.14 },
     update(t) {
       // Power-up: blades spool from rest to full speed over ~1.3 s (analytic integral
       // of a linear ramp, so the angle is continuous and always completes).
