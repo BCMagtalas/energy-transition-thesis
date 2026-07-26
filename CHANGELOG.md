@@ -1,5 +1,8 @@
 # Changelog
 
+## v5.9.1 — Coal plant reshaped after a real coal-station reference
+- Rebuilt the plant's shape/components to match a real coal station (per a supplied photo) while keeping our dark warm-lit theme: a row of four hyperboloid cooling towers venting white steam, four tall banded chimneys (light bands like the reference, taller than the towers, with red beacons) trailing carbon smoke, and a detailed multi-block boiler house on the right (stepped concrete blocks + steel silos + a chimney). All on one concrete pad, linked by steel pipes, with contact shadows and the same rim/key lighting. Wider pulled-back framing to take in the full row; composition sits centre-right leaving the lower-left clear for the caption.
+
 ## v5.9.0 — Coal plant redesigned to match the wind scene's standard
 - Rebuilt scene 02 from wireframe to a solid, realistically-lit industrial plant, so 01 (clean) and 02 (dirty) are a matched pair. Solid concrete hyperboloid cooling towers (a hero pair with real shaded form), a solid stepped boiler house with a steel vent, solid steel smokestacks with red hazard bands + blinking beacons, all sitting on a concrete foundation pad and joined by steel pipes. Same premium lighting as wind — lowered ambient + a warm furnace key + a cool rim for edge separation — plus soft ground-contact shadows so nothing floats. Plumes now split correctly: white steam from the cooling towers, warm carbon smoke (with ember flecks) from the stacks and boiler. Full-facility framing pulled back with a dominant hero tower, tamed bloom (matches wind), warm-industrial palette contrasting wind's cool green.
 

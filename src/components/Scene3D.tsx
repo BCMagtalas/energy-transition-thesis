@@ -396,7 +396,7 @@ function buildWind(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
 /* ---------- 02 · emissions — a solid coal plant venting steam & carbon ---------- */
 function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
   darkStage(scene, textures, [[0, '#0a0b0e'], [0.55, '#1d130e'], [1, '#331d10']], 0x1d130e, 0x5a3f28);
-  scene.fog = new THREE.Fog(0x1d130e, 16, 52);
+  scene.fog = new THREE.Fog(0x1d130e, 18, 62);
 
   // Warm furnace glow + horizon haze behind the plant.
   const halo = makeSoftGlow(0xd0721f, 15, textures);
@@ -416,7 +416,8 @@ function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
   // Solid industrial materials (low metalness — no env map — so they read as lit concrete/steel).
   const concrete = new THREE.MeshStandardMaterial({ color: 0xb6b0a3, roughness: 0.92, metalness: 0.04, side: THREE.DoubleSide });
   const steel = new THREE.MeshStandardMaterial({ color: 0x9aa0a3, roughness: 0.5, metalness: 0.28 });
-  const band = new THREE.MeshStandardMaterial({ color: 0xc0402a, roughness: 0.6, emissive: 0x3a0d06, emissiveIntensity: 0.35 });
+  const stackMat = new THREE.MeshStandardMaterial({ color: 0xc3bcad, roughness: 0.85, metalness: 0.05 });
+  const bandLight = new THREE.MeshStandardMaterial({ color: 0xeae5d8, roughness: 0.8, metalness: 0.03 });
   const padMat = new THREE.MeshStandardMaterial({ color: 0x2a2420, roughness: 1 });
   const shadowMat = new THREE.MeshBasicMaterial({ map: shadowBlobTexture(textures), transparent: true, opacity: 0.5, depthWrite: false });
 
@@ -434,73 +435,86 @@ function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
   };
 
   // Shared concrete foundation pad ties the whole facility to one site.
-  const pad = new THREE.Mesh(new THREE.BoxGeometry(11, 0.3, 5.2), padMat);
-  pad.position.set(1.6, -2.13, -1.7);
+  const pad = new THREE.Mesh(new THREE.BoxGeometry(16, 0.3, 5.8), padMat);
+  pad.position.set(0.4, -2.13, -2.8);
   scene.add(pad);
 
   type Emitter = { pos: [number, number, number]; r: number; rate: number; steam: boolean };
   const emitters: Emitter[] = [];
+  const beacons: { mat: THREE.MeshBasicMaterial; glow: THREE.Sprite; phase: number }[] = [];
 
-  // Solid hyperboloid cooling towers venting white steam — the iconic hero silhouette.
+  // A row of solid hyperboloid cooling towers venting white steam (the classic silhouette).
   const coolTower = (x: number, z: number, s: number) => {
     const m = new THREE.Mesh(coolingTowerGeo(s), concrete);
     m.position.set(x, -2, z);
     scene.add(m);
     contactShadow(x, z, 1.15 * s);
-    emitters.push({ pos: [x, -2 + 2.6 * s, z], r: 0.34 * s, rate: 0.012, steam: true });
+    emitters.push({ pos: [x, -2 + 2.6 * s, z], r: 0.34 * s, rate: 0.011, steam: true });
   };
-  coolTower(0.8, -1.2, 1.35);    // hero, front-centre
-  coolTower(-2.4, -2.7, 0.95);   // left
+  coolTower(-5.7, -3.5, 1.12);
+  coolTower(-4.3, -3.1, 1.22);
+  coolTower(-2.9, -2.9, 1.16);
+  coolTower(-1.5, -3.1, 1.06);
 
-  // Boiler house: solid stepped concrete block + a steel vent stack.
-  const bldg = new THREE.Group();
-  bldg.position.set(3.2, -2, -1.9);
-  const addBox = (w: number, h: number, d: number, x: number, yc: number) => {
-    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), concrete);
-    mesh.position.set(x, yc, 0); bldg.add(mesh);
-  };
-  addBox(1.9, 1.4, 1.5, 0, 0.7);
-  addBox(1.0, 1.1, 1.1, -0.35, 1.95);
-  const vent = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.16, 0.6, 12), steel);
-  vent.position.set(-0.35, 2.8, 0); bldg.add(vent);
-  scene.add(bldg);
-  contactShadow(3.2, -1.9, 1.3);
-  emitters.push({ pos: [3.2 - 0.35, -2 + 3.1, -1.9], r: 0.16, rate: 0.013, steam: false });
-
-  // Solid steel smokestacks with red hazard bands + blinking beacons, trailing dark carbon smoke.
-  const beacons: { mat: THREE.MeshBasicMaterial; glow: THREE.Sprite; phase: number }[] = [];
-  ([[4.8, -1.6, 1.05], [5.6, -2.9, 0.85]] as [number, number, number][]).forEach(([x, z, s], i) => {
-    const H = 3.3 * s;
-    const st = new THREE.Mesh(new THREE.CylinderGeometry(0.16 * s, 0.22 * s, H, 16), steel);
+  // Tall banded chimneys (light bands, like the reference) with blinking beacons + carbon smoke.
+  const bandedStack = (x: number, z: number, s: number, H: number, bi: number) => {
+    const rTop = 0.14 * s, rBase = 0.19 * s;
+    const st = new THREE.Mesh(new THREE.CylinderGeometry(rTop, rBase, H, 18), stackMat);
     st.position.set(x, -2 + H / 2, z);
     scene.add(st);
     contactShadow(x, z, 0.34 * s);
-    [0.72, 0.86].forEach(f => {
-      const r = (0.16 + (0.22 - 0.16) * (1 - f)) * s + 0.006;
-      const ring = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.14 * s, 16), band);
+    [0.5, 0.63, 0.76, 0.89].forEach(f => {
+      const rr = rBase + (rTop - rBase) * f + 0.006;
+      const ring = new THREE.Mesh(new THREE.CylinderGeometry(rr, rr, 0.13 * s, 18), bandLight);
       ring.position.set(x, -2 + H * f, z);
       scene.add(ring);
     });
     const topY = -2 + H;
     const bMat = new THREE.MeshBasicMaterial({ color: 0xff5a44, transparent: true });
-    const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.06 * s, 10, 10), bMat);
+    const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.05 * s, 10, 10), bMat);
     beacon.position.set(x, topY + 0.05, z);
-    const bGlow = makeGlow(0xff5a44, 0.5, textures);
+    const bGlow = makeGlow(0xff5a44, 0.45, textures);
     bGlow.position.set(x, topY + 0.05, z);
     scene.add(beacon, bGlow);
-    beacons.push({ mat: bMat, glow: bGlow, phase: i * 2.1 });
-    emitters.push({ pos: [x, topY, z], r: 0.12 * s, rate: 0.016, steam: false });
-  });
+    beacons.push({ mat: bMat, glow: bGlow, phase: bi * 1.7 });
+    emitters.push({ pos: [x, topY, z], r: 0.1 * s, rate: 0.018, steam: false });
+  };
+  bandedStack(0.2, -2.7, 1.0, 4.7, 0);
+  bandedStack(1.1, -3.0, 0.95, 5.1, 1);
+  bandedStack(2.0, -2.7, 0.9, 4.3, 2);
+  bandedStack(2.9, -3.0, 0.85, 4.0, 3);
 
-  // Steel plumbing weaving between the units → one interconnected facility.
-  pipe(new THREE.Vector3(1.5, -1.5, -1.2), new THREE.Vector3(2.6, -1.5, -1.7), 0.1);   // hero tower → boiler
-  pipe(new THREE.Vector3(3.8, -1.5, -1.7), new THREE.Vector3(4.7, -1.5, -1.6), 0.1);   // boiler → stacks
-  pipe(new THREE.Vector3(-1.4, -1.6, -2.4), new THREE.Vector3(0.3, -1.6, -1.4), 0.09); // left tower → hero
+  // Detailed multi-block boiler house complex on the right.
+  const bldg = new THREE.Group();
+  bldg.position.set(5.6, -2, -2.6);
+  const box = (w: number, h: number, d: number, x: number, yc: number, zc = 0) => {
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), concrete);
+    mesh.position.set(x, yc, zc); bldg.add(mesh);
+  };
+  const silo = (r: number, h: number, x: number, zc = 0) => {
+    const mesh = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, 14), steel);
+    mesh.position.set(x, h / 2, zc); bldg.add(mesh);
+  };
+  box(2.4, 1.7, 2.0, 0, 0.85);          // main hall
+  box(1.3, 2.7, 1.3, -0.7, 1.35);       // tall boiler block
+  box(1.1, 2.1, 1.1, 0.7, 1.05);        // secondary block
+  box(1.8, 1.2, 1.4, 0.2, 0.6, 1.0);    // front annex
+  silo(0.34, 2.3, -1.5, -0.2);          // silo
+  silo(0.28, 1.7, 1.5, 0.4);            // silo
+  const chimney = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.15, 1.5, 14), steel);
+  chimney.position.set(0.2, 2.5, 0.2); bldg.add(chimney);
+  scene.add(bldg);
+  contactShadow(5.6, -2.4, 2.3);
+  emitters.push({ pos: [5.8, -2 + 3.2, -2.4], r: 0.14, rate: 0.014, steam: false });
+
+  // Steel plumbing linking the clusters into one facility.
+  pipe(new THREE.Vector3(-1.1, -1.5, -2.9), new THREE.Vector3(0.0, -1.5, -2.7), 0.09);  // towers → stacks
+  pipe(new THREE.Vector3(3.2, -1.5, -2.8), new THREE.Vector3(4.4, -1.5, -2.6), 0.1);    // stacks → boiler
 
   // Rising plumes — white steam from the cooling towers, warm carbon smoke from the stacks/boiler.
-  const per = 200;
+  const per = 150;
   const count = emitters.length * per;
-  const RISE = 3.9;
+  const RISE = 4.3;
   const geo = new THREE.BufferGeometry();
   const pos = new Float32Array(count * 3);
   const col = new Float32Array(count * 3);
@@ -528,9 +542,9 @@ function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
   scene.add(new THREE.Points(geo, moteMat));
 
   return {
-    cam: { pos: [1.6, 2.2, 12.5], look: [1.6, 1.4, -4], fov: 54 },
+    cam: { pos: [0.4, 2.5, 14], look: [0.4, 1.7, -3], fov: 56 },
     bloom: { strength: 0.5, radius: 0.7, threshold: 0.5 },
-    motion: { orbit: 0.12, dolly: 0.9, rise: 0.14 },
+    motion: { orbit: 0.1, dolly: 0.9, rise: 0.14 },
     update(t) {
       halo.scale.setScalar(15 + Math.sin(t * 0.5) * 0.5);
       beacons.forEach(o => {
