@@ -1,5 +1,8 @@
 # Changelog
 
+## v5.11.0 — Coal smoke: textured, rotating, curl-weaving plumes
+- Upgraded the smoke to the practical best for real-time particles. Each particle now samples a procedural wispy smoke-puff texture (irregular soft blobs with a faded edge) instead of a plain disc, spins slowly (per-particle rotation in the shader), and drifts along a curl-noise-style flow (position-driven sine weave that grows with height) rather than rising dead-straight. Result: the plumes billow and weave like real smoke/steam instead of reading as columns of dots. Same performant point-shader system — no assets, no volumetric raymarch (which would be GPU-heavy/risky on mobile).
+
 ## v5.10.1 — Coal smoke: tune out the popcorn/blowout
 - The v5.10.0 shader made particles too large + opaque (and steam was additive), so plumes read as fluffy popcorn blobs and the steam blew out to solid white. Retuned to the volumetric sweet spot: switched steam to normal blending (no additive blowout), and used large but very low-opacity soft particles in far greater numbers (per 360→820 steam / 420→920 smoke, opacity ~0.5→0.15, grow reduced) so overlaps build smooth continuous haze instead of discrete puffs. Plumes now read as soft wispy steam/smoke columns.
 

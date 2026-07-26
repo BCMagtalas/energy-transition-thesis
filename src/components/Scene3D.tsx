@@ -174,6 +174,33 @@ function concreteTexture(textures: THREE.Texture[]): THREE.CanvasTexture {
   return t;
 }
 
+/** Soft, irregular wispy smoke-puff sprite (many overlapping blobs + faded edge). */
+function smokePuffTexture(textures: THREE.Texture[]): THREE.CanvasTexture {
+  const s = 64;
+  const c = document.createElement('canvas'); c.width = c.height = s;
+  const g = c.getContext('2d')!;
+  g.clearRect(0, 0, s, s);
+  for (let i = 0; i < 11; i++) {              // clumped soft blobs → irregular puff
+    const x = s / 2 + (Math.random() - 0.5) * 26;
+    const y = s / 2 + (Math.random() - 0.5) * 26;
+    const r = 6 + Math.random() * 13;
+    const grad = g.createRadialGradient(x, y, 0, x, y, r);
+    grad.addColorStop(0, 'rgba(255,255,255,0.42)');
+    grad.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = grad; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
+  }
+  g.globalCompositeOperation = 'destination-in';   // fade the sprite edge so it never shows a square
+  const m = g.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
+  m.addColorStop(0, 'rgba(255,255,255,1)');
+  m.addColorStop(0.6, 'rgba(255,255,255,0.85)');
+  m.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = m; g.fillRect(0, 0, s, s);
+  g.globalCompositeOperation = 'source-over';
+  const t = new THREE.CanvasTexture(c);
+  textures.push(t);
+  return t;
+}
+
 /** Distant faint starfield across the upper-back volume — atmospheric depth for the ground scenes. */
 function starField(scene: THREE.Scene, textures: THREE.Texture[], count: number, color: number): void {
   const g = new THREE.BufferGeometry();
@@ -544,25 +571,30 @@ function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
   // than reading as clumps of dots. CPU advects position (rise + wind shear + turbulence).
   const plumeVert = `
     attribute float aBaseY;
-    uniform float uSize; uniform float uGrow; uniform float uRise;
-    varying float vA;
+    attribute float aRot;
+    uniform float uSize; uniform float uGrow; uniform float uRise; uniform float uTime;
+    varying float vA; varying float vRot;
     void main() {
       float f = clamp((position.y - aBaseY) / uRise, 0.0, 1.0);
       vec4 mv = modelViewMatrix * vec4(position, 1.0);
       gl_PointSize = uSize * (0.4 + f * uGrow) * (300.0 / -mv.z);
       gl_Position = projectionMatrix * mv;
       vA = smoothstep(0.0, 0.12, f) * (1.0 - smoothstep(0.55, 1.0, f));
+      vRot = aRot + uTime * (0.25 + fract(aRot) * 0.3);   // each puff spins slowly
     }`;
   const plumeFrag = `
-    uniform vec3 uColor; uniform float uOpacity;
-    varying float vA;
+    uniform vec3 uColor; uniform float uOpacity; uniform sampler2D uTex;
+    varying float vA; varying float vRot;
     void main() {
-      float d = length(gl_PointCoord - 0.5);
-      float soft = smoothstep(0.5, 0.0, d);            // very soft edge so overlaps blend into haze
-      float a = soft * vA * uOpacity;
+      float c = cos(vRot), s = sin(vRot);
+      vec2 pc = gl_PointCoord - 0.5;
+      pc = vec2(pc.x * c - pc.y * s, pc.x * s + pc.y * c) + 0.5;  // rotate the wispy sprite
+      float tex = texture2D(uTex, pc).a;
+      float a = tex * vA * uOpacity;
       if (a < 0.003) discard;
       gl_FragColor = vec4(uColor, a);
     }`;
+  const puffTex = smokePuffTexture(textures);
   const makePlume = (
     ems: Emitter[], baseCol: [number, number, number],
     size: number, per: number, rise: number, riseSpeed: number, drift: number, op: number,
@@ -570,7 +602,7 @@ function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
   ) => {
     const n = ems.length * per;
     const geo = new THREE.BufferGeometry();
-    const pos = new Float32Array(n * 3), baseY = new Float32Array(n), seed = new Float32Array(n);
+    const pos = new Float32Array(n * 3), baseY = new Float32Array(n), seed = new Float32Array(n), rot = new Float32Array(n);
     for (let k = 0; k < ems.length; k++) {
       const e = ems[k];
       for (let j = 0; j < per; j++) {
@@ -582,14 +614,17 @@ function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
         pos[i3 + 2] = e.pos[2] + (Math.random() - 0.5) * sp;
         baseY[i] = e.pos[1];
         seed[i] = Math.random();
+        rot[i] = Math.random() * Math.PI * 2;
       }
     }
     geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     geo.setAttribute('aBaseY', new THREE.BufferAttribute(baseY, 1));
+    geo.setAttribute('aRot', new THREE.BufferAttribute(rot, 1));
     const mat = new THREE.ShaderMaterial({
       uniforms: {
         uColor: { value: new THREE.Color(baseCol[0], baseCol[1], baseCol[2]) },
-        uSize: { value: size }, uGrow: { value: grow }, uRise: { value: rise }, uOpacity: { value: op }
+        uSize: { value: size }, uGrow: { value: grow }, uRise: { value: rise },
+        uOpacity: { value: op }, uTime: { value: 0 }, uTex: { value: puffTex }
       },
       vertexShader: plumeVert, fragmentShader: plumeFrag,
       transparent: true, depthWrite: false,
@@ -597,6 +632,7 @@ function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
     });
     scene.add(new THREE.Points(geo, mat));
     return (t: number) => {
+      mat.uniforms.uTime.value = t;
       const p = geo.attributes.position.array as Float32Array;
       for (let k = 0; k < ems.length; k++) {
         const e = ems[k]; const top = e.pos[1] + rise;
@@ -604,8 +640,9 @@ function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
           const i = k * per + j, i3 = i * 3;
           p[i3 + 1] += riseSpeed + seed[i] * riseSpeed * 0.5;
           const f = (p[i3 + 1] - e.pos[1]) / rise;
-          p[i3] += drift * (0.15 + f) * 0.01 + Math.sin(seed[i] * 30 + t * 0.5) * 0.004; // wind shear + turbulence
-          p[i3 + 2] += Math.cos(seed[i] * 24 + t * 0.4) * 0.003;
+          const sw = 0.35 + f;                                     // curl grows with height
+          p[i3] += drift * (0.12 + f) * 0.01 + Math.sin(p[i3 + 1] * 0.6 + seed[i] * 6.0 + t * 0.5) * 0.006 * sw;
+          p[i3 + 2] += Math.cos(p[i3 + 1] * 0.55 + seed[i] * 5.0 - t * 0.4) * 0.005 * sw;
           if (p[i3 + 1] > top) {
             p[i3] = e.pos[0] + (Math.random() - 0.5) * e.r;
             p[i3 + 1] = e.pos[1];
