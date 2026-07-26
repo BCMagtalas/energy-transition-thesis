@@ -1,5 +1,8 @@
 # Changelog
 
+## v5.8.3 — Wind: full-farm framing + tamed glow
+- Pulled the wind camera back and up and narrowed the FOV (62°→52°) so the whole farm is visible with full turbines (base to blade-tip) and one clear hero turbine dominating centre-front, the rest spread out and receding. Eased the motion (less orbit/dolly) to keep the wide view steady. Tamed the glow that was blowing out the white turbines: bloom strength 0.8→0.55 and threshold 0.35→0.5, blade emissive 0.2→0.06, and toned the whites a touch — the turbines now read clean white/silver with only the hub glowing.
+
 ## v5.8.2 — White, sleeker realistic wind turbines
 - Per request, recoloured and redesigned the turbines: from mint wireframe ribbons to solid **white/silver** realistic turbines that glow against the emerald night. Slender extruded airfoil blades (real thickness, fine tapered tip), a capsule nacelle, a coned nose, a clean tapered tower, and a bright glowing white hub. Materials are MeshStandard with low metalness (no environment map in-scene) so they read bright white rather than going dark, with a faint emissive so the blades bloom softly. Coal plant unchanged.
 
