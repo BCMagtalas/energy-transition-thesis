@@ -146,6 +146,34 @@ function shadowBlobTexture(textures: THREE.Texture[]): THREE.CanvasTexture {
   return t;
 }
 
+/** Procedural weathered-concrete texture: base + faint construction rings + vertical streaks. */
+function concreteTexture(textures: THREE.Texture[]): THREE.CanvasTexture {
+  const c = document.createElement('canvas');
+  c.width = 128; c.height = 256;
+  const g = c.getContext('2d')!;
+  g.fillStyle = '#b8b2a5'; g.fillRect(0, 0, 128, 256);
+  for (let i = 0; i < 1600; i++) {            // fine grain
+    const v = 150 + Math.random() * 90;
+    g.fillStyle = `rgba(${v},${v - 6},${v - 18},0.04)`;
+    g.fillRect(Math.random() * 128, Math.random() * 256, 2, 2);
+  }
+  g.strokeStyle = 'rgba(88,82,72,0.16)'; g.lineWidth = 1;
+  for (let y = 0; y < 256; y += 17) { g.beginPath(); g.moveTo(0, y); g.lineTo(128, y); g.stroke(); }
+  for (let i = 0; i < 30; i++) {              // vertical weathering streaks
+    const x = Math.random() * 128;
+    const grad = g.createLinearGradient(0, 0, 0, 256);
+    grad.addColorStop(0, 'rgba(64,58,50,0)');
+    grad.addColorStop(0.25, 'rgba(64,58,50,0.2)');
+    grad.addColorStop(1, 'rgba(64,58,50,0)');
+    g.fillStyle = grad; g.fillRect(x, 0, 1 + Math.random() * 2, 256);
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  textures.push(t);
+  return t;
+}
+
 /** Distant faint starfield across the upper-back volume — atmospheric depth for the ground scenes. */
 function starField(scene: THREE.Scene, textures: THREE.Texture[], count: number, color: number): void {
   const g = new THREE.BufferGeometry();
@@ -414,7 +442,7 @@ function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
   const rim = new THREE.DirectionalLight(0xbfe0ff, 1.5); rim.position.set(-4, 6, -11); scene.add(rim);
 
   // Solid industrial materials (low metalness — no env map — so they read as lit concrete/steel).
-  const concrete = new THREE.MeshStandardMaterial({ color: 0xb6b0a3, roughness: 0.92, metalness: 0.04, side: THREE.DoubleSide });
+  const concrete = new THREE.MeshStandardMaterial({ color: 0xffffff, map: concreteTexture(textures), roughness: 0.92, metalness: 0.04, side: THREE.DoubleSide });
   const steel = new THREE.MeshStandardMaterial({ color: 0x9aa0a3, roughness: 0.5, metalness: 0.28 });
   const stackMat = new THREE.MeshStandardMaterial({ color: 0xc3bcad, roughness: 0.85, metalness: 0.05 });
   const bandLight = new THREE.MeshStandardMaterial({ color: 0xeae5d8, roughness: 0.8, metalness: 0.03 });
@@ -511,15 +539,38 @@ function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
   pipe(new THREE.Vector3(-1.1, -1.5, -2.9), new THREE.Vector3(0.0, -1.5, -2.7), 0.09);  // towers → stacks
   pipe(new THREE.Vector3(3.2, -1.5, -2.8), new THREE.Vector3(4.4, -1.5, -2.6), 0.1);    // stacks → boiler
 
-  // Volumetric plumes: dense, soft, wind-drifted columns that fade as they rise & shear —
-  // glowing white steam from the cooling towers, warm carbon haze from the stacks/boiler.
+  // Volumetric plumes via a custom point shader: each particle GROWS as it rises and fades
+  // with true alpha (soft round sprite), so the column billows like real smoke/steam rather
+  // than reading as clumps of dots. CPU advects position (rise + wind shear + turbulence).
+  const plumeVert = `
+    attribute float aBaseY;
+    uniform float uSize; uniform float uGrow; uniform float uRise;
+    varying float vA;
+    void main() {
+      float f = clamp((position.y - aBaseY) / uRise, 0.0, 1.0);
+      vec4 mv = modelViewMatrix * vec4(position, 1.0);
+      gl_PointSize = uSize * (0.4 + f * uGrow) * (300.0 / -mv.z);
+      gl_Position = projectionMatrix * mv;
+      vA = smoothstep(0.0, 0.12, f) * (1.0 - smoothstep(0.55, 1.0, f));
+    }`;
+  const plumeFrag = `
+    uniform vec3 uColor; uniform float uOpacity;
+    varying float vA;
+    void main() {
+      float d = length(gl_PointCoord - 0.5);
+      float soft = smoothstep(0.5, 0.03, d);
+      float a = soft * vA * uOpacity;
+      if (a < 0.004) discard;
+      gl_FragColor = vec4(uColor, a);
+    }`;
   const makePlume = (
     ems: Emitter[], baseCol: [number, number, number],
-    size: number, per: number, rise: number, riseSpeed: number, drift: number, op: number
+    size: number, per: number, rise: number, riseSpeed: number, drift: number, op: number,
+    grow: number, additive: boolean
   ) => {
     const n = ems.length * per;
     const geo = new THREE.BufferGeometry();
-    const pos = new Float32Array(n * 3), col = new Float32Array(n * 3), seed = new Float32Array(n);
+    const pos = new Float32Array(n * 3), baseY = new Float32Array(n), seed = new Float32Array(n);
     for (let k = 0; k < ems.length; k++) {
       const e = ems[k];
       for (let j = 0; j < per; j++) {
@@ -529,29 +580,32 @@ function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
         pos[i3] = e.pos[0] + (Math.random() - 0.5) * sp;
         pos[i3 + 1] = e.pos[1] + h0;
         pos[i3 + 2] = e.pos[2] + (Math.random() - 0.5) * sp;
+        baseY[i] = e.pos[1];
         seed[i] = Math.random();
       }
     }
     geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
-    const mat = new THREE.PointsMaterial({
-      size, map: dotTexture(textures), vertexColors: true, transparent: true,
-      opacity: op, blending: THREE.AdditiveBlending, depthWrite: false
+    geo.setAttribute('aBaseY', new THREE.BufferAttribute(baseY, 1));
+    const mat = new THREE.ShaderMaterial({
+      uniforms: {
+        uColor: { value: new THREE.Color(baseCol[0], baseCol[1], baseCol[2]) },
+        uSize: { value: size }, uGrow: { value: grow }, uRise: { value: rise }, uOpacity: { value: op }
+      },
+      vertexShader: plumeVert, fragmentShader: plumeFrag,
+      transparent: true, depthWrite: false,
+      blending: additive ? THREE.AdditiveBlending : THREE.NormalBlending
     });
     scene.add(new THREE.Points(geo, mat));
     return (t: number) => {
       const p = geo.attributes.position.array as Float32Array;
-      const c = geo.attributes.color.array as Float32Array;
       for (let k = 0; k < ems.length; k++) {
         const e = ems[k]; const top = e.pos[1] + rise;
         for (let j = 0; j < per; j++) {
           const i = k * per + j, i3 = i * 3;
           p[i3 + 1] += riseSpeed + seed[i] * riseSpeed * 0.5;
-          const f = (p[i3 + 1] - e.pos[1]) / rise;                        // 0 at base → 1 at top
+          const f = (p[i3 + 1] - e.pos[1]) / rise;
           p[i3] += drift * (0.15 + f) * 0.01 + Math.sin(seed[i] * 30 + t * 0.5) * 0.004; // wind shear + turbulence
           p[i3 + 2] += Math.cos(seed[i] * 24 + t * 0.4) * 0.003;
-          const fade = Math.min(1, f * 3.5) * Math.max(0, 1 - f * 1.12);  // fade in fast, stay visible high, gone just before reset
-          c[i3] = baseCol[0] * fade; c[i3 + 1] = baseCol[1] * fade; c[i3 + 2] = baseCol[2] * fade;
           if (p[i3 + 1] > top) {
             p[i3] = e.pos[0] + (Math.random() - 0.5) * e.r;
             p[i3 + 1] = e.pos[1];
@@ -560,11 +614,10 @@ function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
         }
       }
       geo.attributes.position.needsUpdate = true;
-      geo.attributes.color.needsUpdate = true;
     };
   };
-  const steamPlume = makePlume(emitters.filter(e => e.steam), [0.86, 0.9, 0.93], 0.42, 320, 5.2, 0.013, 0.4, 0.38);
-  const smokePlume = makePlume(emitters.filter(e => !e.steam), [0.82, 0.52, 0.28], 0.3, 300, 8.5, 0.02, 0.9, 0.42);
+  const steamPlume = makePlume(emitters.filter(e => e.steam), [0.88, 0.92, 0.96], 0.9, 360, 5.2, 0.013, 0.4, 0.5, 1.8, true);
+  const smokePlume = makePlume(emitters.filter(e => !e.steam), [0.46, 0.4, 0.34], 0.95, 420, 8.5, 0.02, 0.9, 0.85, 2.2, false);
 
   return {
     cam: { pos: [0.6, 2.0, 11], look: [0.6, 1.3, -3], fov: 55 },

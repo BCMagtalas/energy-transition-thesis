@@ -1,5 +1,8 @@
 # Changelog
 
+## v5.10.0 — Coal: volumetric shader smoke + weathered concrete
+- Real Three.js upgrade (not anime.js — that's a DOM/value library and can't touch WebGL rendering). (1) Replaced the plume PointsMaterial with a custom point ShaderMaterial: each particle now grows as it rises and fades with true alpha as a soft round sprite, so the columns billow volumetrically instead of reading as clumps of dots — steam (additive white) from the cooling towers, carbon smoke (normal-blended grey-brown) from the stacks/boiler. (2) Added a procedural weathered-concrete texture (faint construction rings + vertical weathering streaks) on the cooling towers and boiler house, so they read as real concrete rather than flat clay. Custom shader compiles clean; build + audit pass.
+
 ## v5.9.5 — Solar scene centred
 - The solar (04) scene sat left-of-centre: the sun was at x=-1.4 while the camera looked near centre. Moved the sun (and the field/glow/wireframe parented to it) to x=0 and aimed the camera at x=0, tightened the fov (52→50) and eased the orbit (0.18→0.14) so the sun + orbiting panels stay centred in the card.
 
