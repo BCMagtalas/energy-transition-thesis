@@ -450,30 +450,45 @@ function buildWind(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
 
 /* ---------- 02 · emissions — a solid coal plant venting steam & carbon ---------- */
 function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
-  darkStage(scene, textures, [[0, '#0a0b0e'], [0.55, '#1d130e'], [1, '#331d10']], 0x1d130e, 0x5a3f28);
-  scene.fog = new THREE.Fog(0x1d130e, 18, 62);
+  // Cinematic dusk: deep indigo overhead falling to a smouldering ember horizon.
+  darkStage(scene, textures, [[0, '#080a12'], [0.42, '#2a1626'], [0.74, '#7a2f1e'], [1, '#c96326']], 0x3a1c1c, 0x6b3a2c);
+  scene.fog = new THREE.Fog(0x40201c, 12, 54);   // heavier haze = atmospheric depth between layers
 
-  // Warm furnace glow + horizon haze behind the plant.
-  const halo = makeSoftGlow(0xd0721f, 15, textures);
-  halo.position.set(1.4, -0.2, -9);
+  // Low backlight "sun" behind the plant — the source that silhouettes and rim-lights everything.
+  // Soft haze-diffused sun: a small warm core wrapped in stacked glows (no hard disc edge).
+  const sunCore = makeGlow(0xffd9a0, 7.5, textures);
+  sunCore.position.set(1.2, -0.4, -19);
+  scene.add(sunCore);
+  const sunMid = makeGlow(0xff9f45, 15, textures);
+  sunMid.position.set(1.2, -0.4, -19);
+  scene.add(sunMid);
+  const halo = makeSoftGlow(0xff8c33, 30, textures);
+  halo.position.set(1.2, -0.3, -18);
   scene.add(halo);
-  const horizon = makeSoftGlow(0xba5f22, 1, textures);
-  horizon.scale.set(32, 6, 1);
-  horizon.position.set(0, -1.7, -10);
-  scene.add(horizon);
-  starField(scene, textures, 150, 0xe8c99a);
+  // Layered haze bands at different depths → real aerial perspective.
+  ([[-16, 0xd4632a, 34, 9, 0.5], [-13, 0xb04c26, 30, 7, 0.42], [-8, 0x7a3520, 26, 6, 0.34]] as [number, number, number, number, number][])
+    .forEach(([z, col, w, h, op]) => {
+      const band = makeSoftGlow(col, 1, textures);
+      band.scale.set(w, h, 1);
+      band.position.set(0, -1.5, z);
+      (band.material as THREE.SpriteMaterial).opacity = op;
+      scene.add(band);
+    });
+  starField(scene, textures, 130, 0xe8c99a);
 
-  // Sculpting light: low ambient + a warm furnace key and a cool rim for edge separation.
-  scene.traverse(o => { if (o instanceof THREE.AmbientLight) o.intensity = 0.6; });
-  const key = new THREE.DirectionalLight(0xffd39a, 1.8); key.position.set(5, 7, 6); scene.add(key);
-  const rim = new THREE.DirectionalLight(0xbfe0ff, 1.5); rim.position.set(-4, 6, -11); scene.add(rim);
+  // Silhouette lighting: very low ambient, a strong warm BACK light (behind, rim-lighting the
+  // structures against the sun) and only a soft cool fill from camera-side so they don't go flat black.
+  scene.traverse(o => { if (o instanceof THREE.AmbientLight) o.intensity = 0.22; });
+  const backLight = new THREE.DirectionalLight(0xffb066, 3.0); backLight.position.set(1.5, 3.5, -16); scene.add(backLight);
+  const fill = new THREE.DirectionalLight(0x8fb4d8, 0.55); fill.position.set(-5, 4, 9); scene.add(fill);
 
   // Solid industrial materials (low metalness — no env map — so they read as lit concrete/steel).
-  const concrete = new THREE.MeshStandardMaterial({ color: 0xffffff, map: concreteTexture(textures), roughness: 0.92, metalness: 0.04, side: THREE.DoubleSide });
-  const steel = new THREE.MeshStandardMaterial({ color: 0x9aa0a3, roughness: 0.5, metalness: 0.28 });
-  const stackMat = new THREE.MeshStandardMaterial({ color: 0xc3bcad, roughness: 0.85, metalness: 0.05 });
-  const bandLight = new THREE.MeshStandardMaterial({ color: 0xeae5d8, roughness: 0.8, metalness: 0.03 });
-  const padMat = new THREE.MeshStandardMaterial({ color: 0x2a2420, roughness: 1 });
+  // Darker bodies so the plant reads as a backlit silhouette with warm rim light on its edges.
+  const concrete = new THREE.MeshStandardMaterial({ color: 0x6e6357, map: concreteTexture(textures), roughness: 0.95, metalness: 0.03, side: THREE.DoubleSide });
+  const steel = new THREE.MeshStandardMaterial({ color: 0x4e5459, roughness: 0.55, metalness: 0.3 });
+  const stackMat = new THREE.MeshStandardMaterial({ color: 0x726a5e, roughness: 0.9, metalness: 0.04 });
+  const bandLight = new THREE.MeshStandardMaterial({ color: 0x9b9284, roughness: 0.85, metalness: 0.03 });
+  const padMat = new THREE.MeshStandardMaterial({ color: 0x1d1714, roughness: 1 });
   const shadowMat = new THREE.MeshBasicMaterial({ map: shadowBlobTexture(textures), transparent: true, opacity: 0.5, depthWrite: false });
 
   const contactShadow = (x: number, z: number, r: number) => {
@@ -653,15 +668,16 @@ function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
       geo.attributes.position.needsUpdate = true;
     };
   };
-  const steamPlume = makePlume(emitters.filter(e => e.steam), [0.92, 0.94, 0.97], 0.62, 820, 5.0, 0.013, 0.4, 0.14, 1.5, false);
-  const smokePlume = makePlume(emitters.filter(e => !e.steam), [0.5, 0.44, 0.38], 0.64, 920, 8.5, 0.02, 0.9, 0.16, 1.7, false);
+  // Plumes catch the dusk backlight: steam warm-tinted, smoke a dark sooty brown against the glow.
+  const steamPlume = makePlume(emitters.filter(e => e.steam), [0.97, 0.86, 0.74], 0.62, 820, 5.0, 0.013, 0.4, 0.15, 1.5, false);
+  const smokePlume = makePlume(emitters.filter(e => !e.steam), [0.29, 0.23, 0.21], 0.64, 920, 8.5, 0.02, 0.9, 0.2, 1.7, false);
 
   return {
     cam: { pos: [0.6, 2.0, 11], look: [0.6, 1.3, -3], fov: 55 },
     bloom: { strength: 0.5, radius: 0.7, threshold: 0.5 },
     motion: { orbit: 0.1, dolly: 0.9, rise: 0.14 },
     update(t) {
-      halo.scale.setScalar(15 + Math.sin(t * 0.5) * 0.5);
+      halo.scale.setScalar(30 + Math.sin(t * 0.5) * 0.7);   // slow haze breathe around the dusk sun
       beacons.forEach(o => {
         const v = 0.28 + 0.72 * Math.pow(Math.abs(Math.sin(t * 1.6 + o.phase)), 4);
         o.mat.opacity = v;

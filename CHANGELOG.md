@@ -1,5 +1,8 @@
 # Changelog
 
+## v5.12.0 — Coal scene: cinematic dusk mood pass
+- Redesigned the mood rather than the geometry. The plant is now **backlit and silhouetted** against a cinematic dusk: a deep-indigo→ember sky gradient, a soft haze-diffused sun sitting low behind the facility (stacked glows, no hard disc edge), and three layered haze bands at different depths for true aerial perspective. Lighting flipped to a silhouette setup — ambient dropped to 0.22, a strong warm back light rim-lighting the structures from behind the sun, and only a soft cool camera-side fill so they don't go flat black. Structure materials darkened to read as silhouettes, and the plumes retinted to catch the dusk light (warm steam, dark sooty smoke against the glow).
+
 ## v5.11.0 — Coal smoke: textured, rotating, curl-weaving plumes
 - Upgraded the smoke to the practical best for real-time particles. Each particle now samples a procedural wispy smoke-puff texture (irregular soft blobs with a faded edge) instead of a plain disc, spins slowly (per-particle rotation in the shader), and drifts along a curl-noise-style flow (position-driven sine weave that grows with height) rather than rising dead-straight. Result: the plumes billow and weave like real smoke/steam instead of reading as columns of dots. Same performant point-shader system — no assets, no volumetric raymarch (which would be GPU-heavy/risky on mobile).
 
