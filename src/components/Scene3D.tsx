@@ -610,6 +610,12 @@ function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
       gl_FragColor = vec4(uColor, a);
     }`;
   const puffTex = smokePuffTexture(textures);
+  // Shared dynamic wind: a slow prevailing swing plus layered gusts, so every plume in the
+  // scene bends coherently and the strength ebbs and surges instead of sitting constant.
+  const windX = (tt: number) =>
+    0.75 + 0.55 * Math.sin(tt * 0.16) + 0.30 * Math.sin(tt * 0.41 + 1.7) + 0.16 * Math.sin(tt * 0.93 + 0.4);
+  const windZ = (tt: number) =>
+    0.28 * Math.sin(tt * 0.21 + 2.2) + 0.14 * Math.sin(tt * 0.57 + 0.9);
   const makePlume = (
     ems: Emitter[], baseCol: [number, number, number],
     size: number, per: number, rise: number, riseSpeed: number, drift: number, op: number,
@@ -656,8 +662,11 @@ function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
           p[i3 + 1] += riseSpeed + seed[i] * riseSpeed * 0.5;
           const f = (p[i3 + 1] - e.pos[1]) / rise;
           const sw = 0.35 + f;                                     // curl grows with height
-          p[i3] += drift * (0.12 + f) * 0.01 + Math.sin(p[i3 + 1] * 0.6 + seed[i] * 6.0 + t * 0.5) * 0.006 * sw;
-          p[i3 + 2] += Math.cos(p[i3 + 1] * 0.55 + seed[i] * 5.0 - t * 0.4) * 0.005 * sw;
+          // Sample the wind with a height lag: higher puffs feel the gust from further back in
+          // time, so a passing gust leaves a travelling S-bend up the column (wind history).
+          const tw = t - f * 6.0;
+          p[i3] += drift * (0.12 + f) * 0.01 * windX(tw) + Math.sin(p[i3 + 1] * 0.6 + seed[i] * 6.0 + t * 0.5) * 0.006 * sw;
+          p[i3 + 2] += drift * (0.10 + f) * 0.008 * windZ(tw) + Math.cos(p[i3 + 1] * 0.55 + seed[i] * 5.0 - t * 0.4) * 0.005 * sw;
           if (p[i3 + 1] > top) {
             p[i3] = e.pos[0] + (Math.random() - 0.5) * e.r;
             p[i3 + 1] = e.pos[1];

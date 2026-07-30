@@ -1,5 +1,8 @@
 # Changelog
 
+## v5.13.0 — Dynamic gusting wind on the coal plumes
+- The plume drift was a constant, so every column leaned by the same fixed amount forever. Added a **shared dynamic wind field** — a slow prevailing swing plus two layered gust harmonics on X, with a gentler cross-wind on Z — sampled by every plume so the whole scene bends coherently as gusts pass. The wind is sampled with a **height lag** (higher puffs feel the gust from further back in time), so a passing gust leaves a travelling S-bend up the column: the smoke now records the wind's recent history the way real plumes do. Verified across frames: the columns visibly lean and curve during a gust, then straighten as it eases.
+
 ## v5.12.1 — Coal plumes carry to the top of the frame
 - With the closer dusk framing the plumes were dying mid-frame: the shader faded them from 55% of their travel, so most of the column was gone before it cleared the stacks' height. Held the density much higher (fade now starts at 82% instead of 55%) and extended the travel (steam rise 5.0→9.0, smoke 8.5→13.0, with faster rise speeds and more particles to keep the columns dense over the longer distance), so the smoke now runs continuously from the stacks to the top edge.
 
