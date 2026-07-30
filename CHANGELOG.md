@@ -1,5 +1,8 @@
 # Changelog
 
+## v5.12.1 — Coal plumes carry to the top of the frame
+- With the closer dusk framing the plumes were dying mid-frame: the shader faded them from 55% of their travel, so most of the column was gone before it cleared the stacks' height. Held the density much higher (fade now starts at 82% instead of 55%) and extended the travel (steam rise 5.0→9.0, smoke 8.5→13.0, with faster rise speeds and more particles to keep the columns dense over the longer distance), so the smoke now runs continuously from the stacks to the top edge.
+
 ## v5.12.0 — Coal scene: cinematic dusk mood pass
 - Redesigned the mood rather than the geometry. The plant is now **backlit and silhouetted** against a cinematic dusk: a deep-indigo→ember sky gradient, a soft haze-diffused sun sitting low behind the facility (stacked glows, no hard disc edge), and three layered haze bands at different depths for true aerial perspective. Lighting flipped to a silhouette setup — ambient dropped to 0.22, a strong warm back light rim-lighting the structures from behind the sun, and only a soft cool camera-side fill so they don't go flat black. Structure materials darkened to read as silhouettes, and the plumes retinted to catch the dusk light (warm steam, dark sooty smoke against the glow).
 

@@ -594,7 +594,7 @@ function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
       vec4 mv = modelViewMatrix * vec4(position, 1.0);
       gl_PointSize = uSize * (0.4 + f * uGrow) * (300.0 / -mv.z);
       gl_Position = projectionMatrix * mv;
-      vA = smoothstep(0.0, 0.12, f) * (1.0 - smoothstep(0.55, 1.0, f));
+      vA = smoothstep(0.0, 0.10, f) * (1.0 - smoothstep(0.82, 1.0, f));  // hold density high, fade only at the very top
       vRot = aRot + uTime * (0.25 + fract(aRot) * 0.3);   // each puff spins slowly
     }`;
   const plumeFrag = `
@@ -669,8 +669,8 @@ function buildEmissions(scene: THREE.Scene, textures: THREE.Texture[]): Ctl {
     };
   };
   // Plumes catch the dusk backlight: steam warm-tinted, smoke a dark sooty brown against the glow.
-  const steamPlume = makePlume(emitters.filter(e => e.steam), [0.97, 0.86, 0.74], 0.62, 820, 5.0, 0.013, 0.4, 0.15, 1.5, false);
-  const smokePlume = makePlume(emitters.filter(e => !e.steam), [0.29, 0.23, 0.21], 0.64, 920, 8.5, 0.02, 0.9, 0.2, 1.7, false);
+  const steamPlume = makePlume(emitters.filter(e => e.steam), [0.97, 0.86, 0.74], 0.62, 1000, 9.0, 0.02, 0.4, 0.15, 1.5, false);
+  const smokePlume = makePlume(emitters.filter(e => !e.steam), [0.29, 0.23, 0.21], 0.64, 1100, 13.0, 0.03, 0.9, 0.2, 1.7, false);
 
   return {
     cam: { pos: [0.6, 2.0, 11], look: [0.6, 1.3, -3], fov: 55 },
